@@ -1,14 +1,361 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  password  String   @db.VarChar(255)
+  fullName  String   @db.VarChar(100)
+  email     String?  @unique @db.VarChar(100)
+  phone     String?  @db.VarChar(15)
+  school    String?  @db.VarChar(255)
+  roleId    Int
+  isLocked  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  role            Role             @relation(fields: [roleId], references: [id])
+  classrooms      Classroom[]      @relation("TeacherClassrooms")
+  enrollments     Enrollment[]
+  groups          Group[]
+  submissions     Submission[]
+  assignments     Assignment[]     @relation("AssignmentCreator")
+  quizzes         Quiz[]           @relation("QuizCreator")
+  forumPosts      ForumPost[]
+  groupMembers    GroupMember[]
+  messages        Message[]
+  notifications   Notification[]
+  gradeItems      GradeItem[]
+  surveyResponses SurveyResponse[]
+  quizResults     QuizResult[]
+  chatRooms       ChatRoom[]
+  surveys         Survey[]
+
+  @@map("users")
+}
+
+model Role {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(10)
+  users     User[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("roles")
+}
+
+model Classroom {
+  id          Int       @id @default(autoincrement())
+  title       String    @db.VarChar(100)
+  code        String    @unique @db.VarChar(20)
+  description String?
+  teacherId   Int
+  termStart   DateTime? @map("term_start")
+  termEnd     DateTime? @map("term_end")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  teacher         User             @relation("TeacherClassrooms", fields: [teacherId], references: [id])
+  enrollments     Enrollment[]
+  gradeStructures GradeStructure[]
+  gradeItems      GradeItem[]
+  groups          Group[]
+  resources       Resource[]
+  assignments     Assignment[]
+  quizzes         Quiz[]
+  forumPosts      ForumPost[]
+  chatRooms       ChatRoom[]
+  surveys         Survey[]
+
+  @@map("classrooms")
+}
+
+model Enrollment {
+  id       Int      @id @default(autoincrement()) @map("enroll_id")
+  userId   Int      @map("user_id")
+  classId  Int      @map("class_id")
+  roleIn   String   @map("role_in") @db.VarChar(20)
+  status   String   @map("status") @db.VarChar(20)
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  user      User      @relation(fields: [userId], references: [id])
+  classroom Classroom @relation(fields: [classId], references: [id])
+
+  @@unique([userId, classId])
+  @@map("enrollments")
+}
+
+model GradeStructure {
+  id       Int    @id @default(autoincrement()) @map("structure_id")
+  classId  Int    @map("class_id")
+  title    String @db.VarChar(100)
+  weight   Float
+  maxScore Float  @default(10) @map("max_score")
+
+  classroom   Classroom    @relation(fields: [classId], references: [id])
+  gradeItems  GradeItem[]
+  assignments Assignment[]
+
+  @@map("grade_structures")
+}
+
+model GradeItem {
+  id          Int    @id @default(autoincrement()) @map("grade_id")
+  classId     Int    @map("class_id")
+  structureId Int?   @map("structure_id")
+  userId      Int    @map("user_id")
+  score       Float?
+
+  classroom Classroom       @relation(fields: [classId], references: [id])
+  structure GradeStructure? @relation(fields: [structureId], references: [id])
+  user      User            @relation(fields: [userId], references: [id])
+
+  @@map("grade_items")
+}
+
+model Group {
+  id        Int      @id @default(autoincrement()) @map("group_id")
+  classId   Int      @map("class_id")
+  name      String
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  classroom Classroom     @relation(fields: [classId], references: [id])
+  creator   User          @relation(fields: [createdBy], references: [id])
+  members   GroupMember[]
+  chatRooms ChatRoom[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id       Int      @id @default(autoincrement()) @map("member_id")
+  groupId  Int      @map("group_id")
+  userId   Int      @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+model Resource {
+  id        Int      @id @default(autoincrement()) @map("resource_id")
+  classId   Int      @map("class_id")
+  title     String   @db.VarChar(255)
+  url       String
+  type      String   @db.VarChar(20)
+  size      Int?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  classroom Classroom @relation(fields: [classId], references: [id])
+
+  @@map("resources")
+}
+
+model Assignment {
+  id          Int      @id @default(autoincrement()) @map("assignment_id")
+  classId     Int      @map("class_id")
+  title       String   @db.VarChar(255)
+  description String?
+  attachments Json?
+  dueDate     DateTime @map("due_date")
+  structureId Int?     @map("structure_id")
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  classroom   Classroom       @relation(fields: [classId], references: [id])
+  structure   GradeStructure? @relation(fields: [structureId], references: [id])
+  creator     User            @relation("AssignmentCreator", fields: [createdBy], references: [id])
+  submissions Submission[]
+
+  @@map("assignments")
+}
+
+model Submission {
+  id           Int      @id @default(autoincrement()) @map("submit_id")
+  assignmentId Int      @map("assignment_id")
+  studentId    Int      @map("student_id")
+  files        Json?
+  content      String?
+  submitAt     DateTime @map("submit_at")
+  score        Float?
+  feedback     String?
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
+}
+
+model Quiz {
+  id          Int      @id @default(autoincrement()) @map("quiz_id")
+  classId     Int      @map("class_id")
+  title       String   @db.VarChar(255)
+  description String?
+  mode        String?  @db.VarChar(20)
+  timeLimit   Int?     @map("time_limit")
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  classroom Classroom      @relation(fields: [classId], references: [id])
+  creator   User           @relation("QuizCreator", fields: [createdBy], references: [id])
+  questions QuizQuestion[]
+  sessions  QuizSession[]
+  results   QuizResult[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id            Int    @id @default(autoincrement()) @map("question_id")
+  quizId        Int    @map("quiz_id")
+  text          String
+  type          String @db.VarChar(20)
+  options       Json?
+  correctAnswer Json?  @map("correct_answer")
+  points        Float  @default(1)
+
+  quiz Quiz @relation(fields: [quizId], references: [id])
+
+  @@map("quiz_questions")
+}
+
+model QuizSession {
+  id        Int       @id @default(autoincrement()) @map("session_id")
+  quizId    Int       @map("quiz_id")
+  joinCode  String    @unique @map("join_code") @db.VarChar(20)
+  startTime DateTime? @map("start_time")
+  endTime   DateTime? @map("end_time")
+  isActive  Boolean   @default(false) @map("is_active")
+  socketId  String?   @map("socket_id") @db.VarChar(100)
+
+  quiz    Quiz         @relation(fields: [quizId], references: [id])
+  results QuizResult[]
+
+  @@map("quiz_sessions")
+}
+
+model QuizResult {
+  id         Int       @id @default(autoincrement()) @map("result_id")
+  sessionId  Int       @map("session_id")
+  quizId     Int       @map("quiz_id")
+  studentId  Int       @map("student_id")
+  answers    Json?
+  score      Float?
+  startedAt  DateTime? @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+
+  session QuizSession @relation(fields: [sessionId], references: [id])
+  quiz    Quiz        @relation(fields: [quizId], references: [id])
+  student User        @relation(fields: [studentId], references: [id])
+
+  @@unique([sessionId, studentId])
+  @@map("quiz_results")
+}
+
+model ForumPost {
+  id          Int      @id @default(autoincrement()) @map("post_id")
+  classId     Int      @map("class_id")
+  authorId    Int      @map("author_id")
+  parentId    Int?     @map("parent_id")
+  title       String?  @db.VarChar(255)
+  content     String
+  isAnonymous Boolean  @default(false) @map("is_anonymus")
+  visibility  String   @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  classroom Classroom   @relation(fields: [classId], references: [id])
+  author    User        @relation(fields: [authorId], references: [id])
+  parent    ForumPost?  @relation("ForumReplies", fields: [parentId], references: [id])
+  replies   ForumPost[] @relation("ForumReplies")
+
+  @@map("forum_posts")
+}
+
+model ChatRoom {
+  id        Int      @id @default(autoincrement()) @map("room_id")
+  name      String   @db.VarChar(100)
+  groupId   Int?     @map("group_id")
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  group       Group?     @relation(fields: [groupId], references: [id])
+  creator     User       @relation(fields: [createdBy], references: [id])
+  messages    Message[]
+  classroom   Classroom? @relation(fields: [classroomId], references: [id])
+  classroomId Int?
+
+  @@map("chat_rooms")
+}
+
+model Message {
+  id       Int      @id @default(autoincrement()) @map("message_id")
+  roomId   Int      @map("room_id")
+  senderId Int      @map("sender_id")
+  content  String
+  sentAt   DateTime @default(now()) @map("sent_at")
+
+  room   ChatRoom @relation(fields: [roomId], references: [id])
+  sender User     @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Survey {
+  id          Int      @id @default(autoincrement()) @map("survey_id")
+  classId     Int      @map("class_id")
+  title       String   @unique @db.VarChar(255)
+  description String?
+  options     Json
+  createdBy   Int      @map("created_by")
+  isActive    Boolean  @default(false) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  classroom Classroom        @relation(fields: [classId], references: [id])
+  creator   User             @relation(fields: [createdBy], references: [id])
+  responses SurveyResponse[]
+
+  @@map("surveys")
+}
+
+model SurveyResponse {
+  id          Int      @id @default(autoincrement()) @map("response_id")
+  surveyId    Int      @map("survey_id")
+  userId      Int      @map("user_id")
+  answers     Json
+  submitAt    DateTime @default(now()) @map("submit_at")
+  isAnonymous Boolean  @default(false) @map("is_anonymous")
+
+  survey Survey @relation(fields: [surveyId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([surveyId, userId])
+  @@map("survey_responses")
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement()) @map("notification_id")
+  userId      Int      @map("user_id")
+  type        String   @db.VarChar(50)
+  title       String?  @db.VarChar(255)
+  content     String
+  relatedType String?  @map("related_type") @db.VarChar(100)
+  relatedId   Int?     @map("related_id")
+  isRead      Boolean  @default(false) @map("is_read")
+  channel     String   @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
 }

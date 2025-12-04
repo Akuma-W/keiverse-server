@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:18
-    container_name: postgres_db
+    container_name: keiverse-postgres
     environment:
       POSTGRES_USER: akuma-w
-      POSTGRES_PASSWORD: 22521094
+      POSTGRES_PASSWORD: "22521094"
       POSTGRES_DB: kei_verse_db
     ports:
       - "5432:5432"
@@ -14,9 +12,31 @@ services:
       - pgdata:/var/lib/postgresql
     networks:
       - kei-verse-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: keiverse-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - kei-verse-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:
+  redis_data:
 
 networks:
   kei-verse-network:
