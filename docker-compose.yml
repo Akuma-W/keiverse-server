@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: akuma-w
+      POSTGRES_PASSWORD: 22521094
+      POSTGRES_DB: kei_verse_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks:
+      - kei-verse-network
+
+volumes:
+  pgdata:
+
+networks:
+  kei-verse-network:
+    driver: bridge
+    external: true
