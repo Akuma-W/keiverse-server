@@ -12,16 +12,20 @@ import {
 } from '@nestjs/common';
 import type { Response, Request } from 'express';
 import { AuthService } from './auth.service';
-import { JwtPayload } from './interfaces/jwt-payload.interface';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Public } from 'src/common/decorators';
+import { CurrentUser, Public } from 'src/common/decorators';
 import { ChangePasswordDto, LoginDto, RegisterDto } from './dto';
-import { LocalAuthGuard, RefreshJwtGuard } from 'src/common/guards';
+import {
+  JwtAuthGuard,
+  LocalAuthGuard,
+  RefreshJwtGuard,
+} from 'src/common/guards';
+import { Tokens } from './entities/tokens.entity';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -66,6 +70,8 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({ status: 200, description: 'Token refreshed', type: Tokens })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -89,46 +95,36 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('access-token')
-  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  @ApiOperation({ summary: 'Logout user' })
+  @ApiResponse({ status: 200, description: 'Logout successful' })
+  async logout(@Req() req: Request, @CurrentUser('id') userId: number) {
     if (!req.user || typeof req.user !== 'object') {
       throw new UnauthorizedException('User not found');
     }
-
-    const userId = (req.user as JwtPayload).sub;
-
     const refreshToken = req.cookies.refresh_token as string;
-
-    await this.authService.logout(userId, refreshToken);
-
-    // Clear refresh token cookie
-    res.clearCookie('refresh_token');
-
-    return { message: 'Logged out successfully' };
+    return this.authService.logout(userId, refreshToken);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Change user password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
   async changePassword(
-    @Req() req: Request,
+    @CurrentUser('id') userId: number,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    if (!req.user || typeof req.user !== 'object') {
-      throw new UnauthorizedException('User not found');
-    }
-
-    const userId = (req.user as JwtPayload).sub;
     return this.authService.changePassword(userId, changePasswordDto);
   }
 
-  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
   @ApiBearerAuth('access-token')
-  async getProfile(@Req() req: Request) {
-    if (!req.user || typeof req.user !== 'object') {
-      throw new UnauthorizedException('User not found');
-    }
-
-    const userId = (req.user as JwtPayload).sub;
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved' })
+  async getProfile(@CurrentUser('id') userId: number) {
+    console.log(userId);
     return this.authService.getProfile(userId);
   }
 }

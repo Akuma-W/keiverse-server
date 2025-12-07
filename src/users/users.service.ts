@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { UsersRepository } from './repositories/users.repository';
@@ -19,7 +20,7 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const { username, email, role } = createUserDto;
+    const { username, email, role, password } = createUserDto;
     // Check if user already exists
     const existingUser = await this.findByUsernameOrEmail(username, email);
 
@@ -36,15 +37,12 @@ export class UsersService {
       roleRecord = await this.rolesService.create({ name: roleName });
     }
 
-    // Create user
-    console.log('UsersService: ', {
-      ...createUserDto,
-      role: {
-        connect: { id: roleRecord.id },
-      },
-    });
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await this.usersRepository.create({
       ...createUserDto,
+      password: hashedPassword,
       role: {
         connect: { id: roleRecord.id },
       },
@@ -243,24 +241,21 @@ export class UsersService {
     return this.sanitizeUser(updatedUser);
   }
 
-  // async getUserEnrollments(id: number) {
-  //   const user = await this.usersRepository.findOne({
-  //     where: { id },
-  //     include: {
-  //       enrollments: {
-  //         include: {
-  //           classroom: true,
-  //         },
-  //       },
-  //     },
-  //   });
+  // Search users by name, username, or email
+  async search(searchTerm: string) {
+    if (!searchTerm || searchTerm.length < 2) {
+      throw new BadRequestException(
+        'Search term must be at least 2 characters',
+      );
+    }
 
-  //   if (!user) {
-  //     throw new NotFoundException(`User with ID ${id} not found`);
-  //   }
+    return this.usersRepository.searchUsers(searchTerm);
+  }
 
-  //   return user.enrollments;
-  // }
+  // Get users by role
+  async findByRole(roleName: string) {
+    return this.usersRepository.findByRole(roleName);
+  }
 
   sanitizeUser(user: User) {
     if (!user) return null;

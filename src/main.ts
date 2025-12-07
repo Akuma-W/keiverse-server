@@ -18,7 +18,10 @@ async function bootstrap() {
   // Security
   app.use(helmet());
   app.enableCors({
-    origin: configService.get<string>('app.frontendUrl'),
+    origin: configService.get<string>('app.clientUrl'),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
   // Cookie parser
   app.use(cookieParser());
@@ -37,7 +40,7 @@ async function bootstrap() {
   // Global filters
   app.useGlobalFilters(new HttpExceptionsFilter());
   // API versioning
-  app.setGlobalPrefix(configService.get('app.apiPrefix') ?? 'api');
+  app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',
@@ -51,7 +54,6 @@ async function bootstrap() {
       'KEIVerse — Interactive Learning Platform API documentation',
     )
     .setVersion('1.0')
-    // Add Bearer token support for Authorization header
     .addBearerAuth(
       {
         type: 'http',
@@ -62,10 +64,16 @@ async function bootstrap() {
       },
       'access-token',
     )
+    .addCookieAuth('refreshToken')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
+
+  // Health check endpoint
+  app.getHttpAdapter().get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
   // ---------- Start server ----------
   const port = configService.get<number>('app.port') || 3000;

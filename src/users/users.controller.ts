@@ -67,10 +67,4 @@ export class UsersController {
   unlockUser(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.unlockUser(id);
   }
-
-  // @Get(':id/enrollments')
-  // @Roles('admin', 'teacher', 'student')
-  // getUserEnrollments(@Param('id', ParseIntPipe) id: number) {
-  //   return this.usersService.getUserEnrollments(id);
-  // }
 }

@@ -55,4 +55,31 @@ export class UsersRepository {
     const { where } = params;
     return this.prisma.user.count({ where });
   }
+
+  async findByRole(roleName: string) {
+    return this.prisma.user.findMany({
+      where: {
+        role: { name: roleName },
+        isLocked: false,
+      },
+      include: {
+        role: true,
+      },
+    });
+  }
+
+  async searchUsers(searchTerm: string) {
+    return this.prisma.user.findMany({
+      where: {
+        OR: [
+          { username: { contains: searchTerm, mode: 'insensitive' } },
+          { fullName: { contains: searchTerm, mode: 'insensitive' } },
+          { email: { contains: searchTerm, mode: 'insensitive' } },
+        ],
+      },
+      include: {
+        role: true,
+      },
+    });
+  }
 }

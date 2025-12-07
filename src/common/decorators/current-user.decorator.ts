@@ -2,20 +2,17 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export interface JwtUser {
   id: number;
-  email: string;
-  role: string;
+  jti?: string;
+  email?: string;
+  role?: string;
 }
 
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
+  (data: keyof JwtUser | undefined, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<{ user: JwtUser }>();
-    return request.user;
-  },
-);
+    const user = request.user;
 
-export const CurrentUserId = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest<{ user: JwtUser }>();
-    return request.user?.id;
+    if (!user) return null;
+    return data ? user[data] : user;
   },
 );

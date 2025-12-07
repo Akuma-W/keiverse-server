@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { UsersService } from '../users/users.service';
-import { RedisService } from '../common/redis/redis.service';
+import { RedisService } from '../redis/redis.service';
 import { RegisterDto, LoginDto, ChangePasswordDto } from './dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { RolesService } from 'src/roles/roles.service';
@@ -43,18 +43,8 @@ export class AuthService {
       throw new BadRequestException('Invalid role');
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-
     // Create user
-    console.log('AuthService: ', {
-      ...registerDto,
-      hashedPassword,
-    });
-    const user = await this.usersService.create({
-      ...registerDto,
-      password: hashedPassword,
-    });
+    const user = await this.usersService.create({ ...registerDto });
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials: user');
@@ -64,10 +54,7 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id);
 
     return {
-      user: this.usersService.sanitizeUser({
-        ...user,
-        password: hashedPassword,
-      }),
+      user,
       ...tokens,
     };
   }
@@ -151,13 +138,13 @@ export class AuthService {
     const password = await this.usersService.findPasswordById(userId);
 
     // Verify old password
-    const isOldPasswordValid = await bcrypt.compare(
-      changePasswordDto.oldPassword,
+    const isCurrentPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
       password,
     );
 
-    if (!isOldPasswordValid) {
-      throw new BadRequestException('Old password is incorrect');
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
     }
 
     // Hash new password
@@ -180,10 +167,7 @@ export class AuthService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
     const password = await this.usersService.findPasswordById(userId);
-    return this.usersService.sanitizeUser({
-      ...user,
-      password,
-    });
+    return { ...user, password };
   }
 
   private async generateTokens(userId: number) {
