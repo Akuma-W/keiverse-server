@@ -40,6 +40,7 @@ export class UsersService {
       this.configService.get<number>('auth.bcrypt.saltRounds', 10),
     );
 
+    this.logger.log(`Creating user with username: ${username}`);
     return this.usersRepo.create({
       ...dto,
       password: hashedPassword,
@@ -71,6 +72,7 @@ export class UsersService {
     if (roleId) where.roleId = roleId;
     if (isLocked !== undefined) where.isLocked = isLocked;
 
+    this.logger.log(`Fetching users - Page: ${page}, Limit: ${limit}`);
     return this.usersRepo.findMany(where, skip, limit);
   }
 
@@ -80,18 +82,21 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
+    this.logger.log(`Fetching user with ID: ${id}`);
     return user;
   }
 
   // Update a user
   async update(id: number, dto: UpdateUserDto) {
     await this.findOne(id); // Ensure user exists
+    this.logger.log(`Updating user with ID: ${id}`);
     return this.usersRepo.update(id, dto);
   }
 
   // Delete a user
   async remove(id: number) {
     await this.findOne(id); // Ensure user exists
+    this.logger.log(`Deleting user with ID: ${id}`);
     return this.usersRepo.delete(id);
   }
 }

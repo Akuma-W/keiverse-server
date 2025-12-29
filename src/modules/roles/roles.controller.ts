@@ -1,81 +1,65 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  Query,
-  UseGuards,
-  ParseIntPipe,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
-import { RolesService } from './roles.service';
-import { CreateRoleDto, UpdateRoleDto, QueryRolesDto } from './dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { RolesGuard } from '@/common/guards/roles.guard';
+
 import { Roles } from '@/common/decorators/roles.decorator';
 import { Role } from '@/common/enums/roles.enum';
+import { RolesGuard } from '@/common/guards/roles.guard';
 
+import { CreateRoleDto, UpdateRoleDto } from './dto';
+import { RolesService } from './roles.service';
+
+// Controller for managing roles in the system
 @ApiTags('Roles')
 @ApiBearerAuth('access-token')
-@Controller('roles')
 @UseGuards(RolesGuard)
+@Controller('roles')
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
+  // Create a new role
   @Post()
   @Roles(Role.ADMIN)
-  @HttpCode(HttpStatus.CREATED)
-  create(@Body() createRoleDto: CreateRoleDto) {
-    return this.rolesService.create(createRoleDto);
+  create(@Body() dto: CreateRoleDto) {
+    return this.rolesService.create(dto);
   }
 
+  // Get all roles
   @Get()
-  @Roles(Role.ADMIN)
-  findAll(@Query() query: QueryRolesDto) {
-    return this.rolesService.findAll(query);
+  findAll() {
+    return this.rolesService.findAll();
   }
 
+  // Get a role by ID
   @Get(':id')
-  @Roles(Role.ADMIN)
+  @Roles()
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.rolesService.findOne(id);
   }
 
-  @Get('name/:name')
-  @Roles(Role.ADMIN)
-  findByName(@Param('name') name: string) {
-    return this.rolesService.findByName(name);
-  }
-
+  // Update a role by ID
   @Patch(':id')
   @Roles(Role.ADMIN)
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateRoleDto: UpdateRoleDto,
-  ) {
-    return this.rolesService.update(id, updateRoleDto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRoleDto) {
+    return this.rolesService.update(id, dto);
   }
 
+  // Delete a role by ID
   @Delete(':id')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.rolesService.remove(id);
-  }
-
-  @Get(':id/users')
-  @Roles(Role.ADMIN)
-  getUsersWithRole(@Param('id', ParseIntPipe) id: number) {
-    return this.rolesService.getUsersWithRole(id);
-  }
-
-  @Get(':id/users/count')
-  @Roles(Role.ADMIN)
-  getUserCount(@Param('id', ParseIntPipe) id: number) {
-    return this.rolesService.getUserCount(id);
   }
 }
