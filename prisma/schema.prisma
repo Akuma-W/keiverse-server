@@ -1,6 +1,6 @@
 generator client {
   provider     = "prisma-client"
-  output       = "../src/generated/prisma"
+  output       = "../generated/prisma"
   moduleFormat = "cjs"
 }
 
@@ -12,12 +12,13 @@ model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
   password  String   @db.VarChar(255)
-  fullName  String   @db.VarChar(100)
+  fullName  String   @map("full_name") @db.VarChar(100)
   email     String?  @unique @db.VarChar(100)
   phone     String?  @db.VarChar(15)
   school    String?  @db.VarChar(255)
-  roleId    Int
+  roleId    Int      @map("role_id")
   isLocked  Boolean  @default(false)
+  imageUrl  String?  @map("image_url") @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -55,7 +56,7 @@ model Classroom {
   title       String    @db.VarChar(100)
   code        String    @unique @db.VarChar(20)
   description String?
-  teacherId   Int
+  teacherId   Int       @map("teacher_id")
   termStart   DateTime? @map("term_start")
   termEnd     DateTime? @map("term_end")
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -76,11 +77,11 @@ model Classroom {
 }
 
 model Enrollment {
-  id       Int      @id @default(autoincrement()) @map("enroll_id")
+  id       Int      @id @default(autoincrement())
   userId   Int      @map("user_id")
   classId  Int      @map("class_id")
   roleIn   String   @map("role_in") @db.VarChar(20)
-  status   String   @map("status") @db.VarChar(20)
+  status   String   @db.VarChar(20)
   joinedAt DateTime @default(now()) @map("joined_at")
 
   user      User      @relation(fields: [userId], references: [id])
@@ -91,7 +92,7 @@ model Enrollment {
 }
 
 model GradeStructure {
-  id       Int    @id @default(autoincrement()) @map("structure_id")
+  id       Int    @id @default(autoincrement())
   classId  Int    @map("class_id")
   title    String @db.VarChar(100)
   weight   Float
@@ -105,7 +106,7 @@ model GradeStructure {
 }
 
 model GradeItem {
-  id          Int    @id @default(autoincrement()) @map("grade_id")
+  id          Int    @id @default(autoincrement())
   classId     Int    @map("class_id")
   structureId Int?   @map("structure_id")
   userId      Int    @map("user_id")
@@ -119,7 +120,7 @@ model GradeItem {
 }
 
 model Group {
-  id        Int      @id @default(autoincrement()) @map("group_id")
+  id        Int      @id @default(autoincrement())
   classId   Int      @map("class_id")
   name      String
   createdBy Int      @map("created_by")
@@ -134,7 +135,7 @@ model Group {
 }
 
 model GroupMember {
-  id       Int      @id @default(autoincrement()) @map("member_id")
+  id       Int      @id @default(autoincrement())
   groupId  Int      @map("group_id")
   userId   Int      @map("user_id")
   joinedAt DateTime @default(now()) @map("joined_at")
@@ -147,7 +148,7 @@ model GroupMember {
 }
 
 model Resource {
-  id        Int      @id @default(autoincrement()) @map("resource_id")
+  id        Int      @id @default(autoincrement())
   classId   Int      @map("class_id")
   title     String   @db.VarChar(255)
   url       String
@@ -161,7 +162,7 @@ model Resource {
 }
 
 model Assignment {
-  id          Int      @id @default(autoincrement()) @map("assignment_id")
+  id          Int      @id @default(autoincrement())
   classId     Int      @map("class_id")
   title       String   @db.VarChar(255)
   description String?
@@ -180,7 +181,7 @@ model Assignment {
 }
 
 model Submission {
-  id           Int      @id @default(autoincrement()) @map("submit_id")
+  id           Int      @id @default(autoincrement())
   assignmentId Int      @map("assignment_id")
   studentId    Int      @map("student_id")
   files        Json?
@@ -197,7 +198,7 @@ model Submission {
 }
 
 model Quiz {
-  id          Int      @id @default(autoincrement()) @map("quiz_id")
+  id          Int      @id @default(autoincrement())
   classId     Int      @map("class_id")
   title       String   @db.VarChar(255)
   description String?
@@ -216,7 +217,7 @@ model Quiz {
 }
 
 model QuizQuestion {
-  id            Int    @id @default(autoincrement()) @map("question_id")
+  id            Int    @id @default(autoincrement())
   quizId        Int    @map("quiz_id")
   text          String
   type          String @db.VarChar(20)
@@ -230,7 +231,7 @@ model QuizQuestion {
 }
 
 model QuizSession {
-  id        Int       @id @default(autoincrement()) @map("session_id")
+  id        Int       @id @default(autoincrement())
   quizId    Int       @map("quiz_id")
   joinCode  String    @unique @map("join_code") @db.VarChar(20)
   startTime DateTime? @map("start_time")
@@ -245,7 +246,7 @@ model QuizSession {
 }
 
 model QuizResult {
-  id         Int       @id @default(autoincrement()) @map("result_id")
+  id         Int       @id @default(autoincrement())
   sessionId  Int       @map("session_id")
   quizId     Int       @map("quiz_id")
   studentId  Int       @map("student_id")
@@ -263,7 +264,7 @@ model QuizResult {
 }
 
 model ForumPost {
-  id          Int      @id @default(autoincrement()) @map("post_id")
+  id          Int      @id @default(autoincrement())
   classId     Int      @map("class_id")
   authorId    Int      @map("author_id")
   parentId    Int?     @map("parent_id")
@@ -283,7 +284,7 @@ model ForumPost {
 }
 
 model ChatRoom {
-  id        Int      @id @default(autoincrement()) @map("room_id")
+  id        Int      @id @default(autoincrement())
   name      String   @db.VarChar(100)
   groupId   Int?     @map("group_id")
   createdBy Int      @map("created_by")
@@ -299,7 +300,7 @@ model ChatRoom {
 }
 
 model Message {
-  id       Int      @id @default(autoincrement()) @map("message_id")
+  id       Int      @id @default(autoincrement())
   roomId   Int      @map("room_id")
   senderId Int      @map("sender_id")
   content  String
@@ -312,7 +313,7 @@ model Message {
 }
 
 model Survey {
-  id          Int      @id @default(autoincrement()) @map("survey_id")
+  id          Int      @id @default(autoincrement())
   classId     Int      @map("class_id")
   title       String   @unique @db.VarChar(255)
   description String?
@@ -329,7 +330,7 @@ model Survey {
 }
 
 model SurveyResponse {
-  id          Int      @id @default(autoincrement()) @map("response_id")
+  id          Int      @id @default(autoincrement())
   surveyId    Int      @map("survey_id")
   userId      Int      @map("user_id")
   answers     Json
@@ -344,7 +345,7 @@ model SurveyResponse {
 }
 
 model Notification {
-  id          Int      @id @default(autoincrement()) @map("notification_id")
+  id          Int      @id @default(autoincrement())
   userId      Int      @map("user_id")
   type        String   @db.VarChar(50)
   title       String?  @db.VarChar(255)

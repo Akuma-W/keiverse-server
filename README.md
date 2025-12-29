@@ -1,98 +1,165 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# KEIVerse Backend Server
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This is the **backend project** for **SE122 - Major Project 2 - UIT**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+**KEIVerse** is an **interactive education** platform designed to enhance both online and offline learning experiences. The backend server is responsible for handling authentication, class management, quizzes, assignments, real-time interactions, and notifications. Built with a modular and scalable architecture, it ensures security, performance, and real-time responsiveness for students, teachers, and administrators. This repository contains the backend API powering the KEIVerse ecosystem.
 
-## Description
+## Tech Stack
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **Framework:** NestJS (Node.js)
+- **Language:** TypeScript
+- **Database:** PostgreSQL
+- **ORM:** Prisma
+- **Cache / Queue:** Redis
+- **Authentication:** JWT, Passport
+- **Realtime:** Socket.IO
+- **File Upload:** Cloudinary / Cloud Storage
+- **Containerization:** Docker, Docker Compose
+- **API Documentation:** Swagger (OpenAPI)
 
-## Project setup
+## Features
 
-```bash
-$ npm install
-```
+- Authentication & Authorization (JWT, Role-based access)
+- User management (Admin, Teacher, Student)
+- Classroom management (create, join, approve students)
+- Assignment management (create, submit, grade)
+- Quiz system (online & offline, realtime participation)
+- Realtime quiz sessions with Socket.IO
+- Random student / group selection
+- Grade management & statistics
+- Forum & anonymous Q&A
+- Group chat & messaging
+- Survey / polling system
+- Notification system (in-app & email)
+- Excel import/export (students, grades)
+- Redis caching & session support
 
-## Compile and run the project
+## Installation & Run
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
+### 1. Clone project
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+git clone https://github.com/Akuma-W/keiverse-server.git
+cd kei-verse-server
 ```
 
-## Deployment
+### 2. Environment variables
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Create a `.env` file based on `.env.example`:
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+``` bash
+cp .env.example .env
+```
+
+### 3. Setup Docker
+
+The project uses Docker Compose to run required services.
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker-compose-up
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Included services:
 
-## Resources
+- **PostgreSQL**
+- **Redis**
 
-Check out a few resources that may come in handy when working with NestJS:
+Make sure Docker is running before executing this command.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 4. Setup database
 
-## Support
+This project uses **Prisma**.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+**1.** Install dependencies:
 
-## Stay in touch
+```bash
+npm install
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+**2.** Generate Prisma client:
 
-## License
+```bash
+npx prisma generate
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+**3.** Run database migrations:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+**4.** Seed initial data (roles table):
+
+```bash
+npx prisma db seed
+```
+
+The seed script will create default roles: `admin`, `teacher`, `student`.
+
+### 5. Run project
+
+**1.** Install packages
+
+```bash
+npm install
+```
+
+Run the backend server:
+
+```bash
+# Development
+npm run start:dev
+
+# Production
+npm run build
+npm run start:prod
+```
+
+- Server runs at: [http://localhost:3000/](http://localhost:3000/)
+
+- Swagger API docs: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+
+## Folder Structure
+
+``` bash
+src/
+├── modules/
+│   ├── auth/
+│   ├── users/
+│   ├── classrooms/
+│   ├── assignments/
+│   ├── quizzes/
+│   ├── forums/
+│   ├── chats/
+│   ├── surveys/
+│   ├── notifications/
+│   └── grades/
+├── infra/
+│   ├── prisma/
+│   ├── redis/
+│   ├── cloudinary/
+│   └── mail/
+├── common/
+│   ├── decorators/
+│   ├── guards/
+│   ├── filters/
+│   ├── interceptors/
+│   └── utils/
+├── gateways/        # Socket.IO gateways
+├── config/
+├── main.ts
+└── app.module.ts
+```
+
+## Contact
+
+- **Project:** KEIVerse
+- **Author:** Tran Tuan Phong
+- **Email:** [tuanphongbrvt1@gmail.com](mailto:tuanphongbrvt1@gmail.com)
+- **Linkedin:** [AkumaPhong](https://www.linkedin.com/in/phongakuma/)
+- **Website:** (updating)
+
+## LICENSE
+
+This project is licensed under the **MIT License**.
+See the `LICENSE` file for more details.

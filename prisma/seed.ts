@@ -1,8 +1,9 @@
+import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
 
 const adapter = new PrismaPg({
-  url: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
 });
 
 const prisma = new PrismaClient({ adapter });
@@ -20,6 +21,7 @@ async function seed() {
 }
 
 seed()
+  .then(() => console.log('Seed completed!'))
   .catch((e) => {
     console.error('Seed failed!');
     console.error(e);
