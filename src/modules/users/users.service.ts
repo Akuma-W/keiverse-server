@@ -1,267 +1,97 @@
 import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
   BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
-import { UsersRepository } from './repositories/users.repository';
-import { RolesService } from '../roles/roles.service';
-import { CreateUserDto, UpdateUserDto, QueryUsersDto } from './dto';
-import { Role } from '@/modules/roles/entities/role.entity';
-import { UserUpdateInput, UserWhereUniqueInput } from 'generated/prisma/models';
-import { User } from 'generated/prisma/client';
 
+import { CreateUserDto, QueryUsersDto, UpdateUserDto } from './dto';
+import { UsersRepository } from './repositories/users.repository';
+
+// Service for managing User entities
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
-    private readonly usersRepository: UsersRepository,
-    private readonly rolesService: RolesService,
+    private readonly usersRepo: UsersRepository,
+    private readonly configService: ConfigService,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
-    const { username, email, role, password } = createUserDto;
-    // Check if user already exists
-    const existingUser = await this.findByUsernameOrEmail(username, email);
+  // Create a new user
+  async create(dto: CreateUserDto) {
+    const { username, email, roleId, password } = dto;
 
-    if (existingUser) {
-      throw new ConflictException('Username or email already exists');
+    // Check if username already exists
+    const existedUsername = await this.usersRepo.findByUnique({ username });
+    if (existedUsername) {
+      throw new BadRequestException('Username already exists');
     }
-
-    // Get or create role
-    const roleName = role ?? 'student';
-    const existingRole = await this.rolesService.findByName(roleName);
-
-    let roleRecord: Role = existingRole;
-    if (!existingRole) {
-      roleRecord = await this.rolesService.create({ name: roleName });
+    // Check if email already exists
+    const existedEmail = await this.usersRepo.findByUnique({ email });
+    if (existedEmail) {
+      throw new BadRequestException('Email already exists');
     }
-
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(
+      password,
+      this.configService.get<number>('auth.bcrypt.saltRounds', 10),
+    );
 
-    const user = await this.usersRepository.create({
-      ...createUserDto,
+    return this.usersRepo.create({
+      ...dto,
       password: hashedPassword,
-      role: {
-        connect: { id: roleRecord.id },
-      },
+      role: { connect: { id: roleId } },
     });
-
-    return this.sanitizeUser(user);
   }
 
+  // Get all users with pagination and filtering
   async findAll(query: QueryUsersDto) {
-    const { page = 1, limit = 10, role, search, ...filters } = query;
+    const { page = 1, limit = 10, keyword, roleId, isLocked } = query;
+
     const skip = (page - 1) * limit;
+    const where = {
+      OR: [] as any[],
+      roleId: 0,
+      isLocked: false,
+    };
 
-    const where: Record<string, unknown> = { ...filters };
-
-    if (role) {
-      const roleRecord = (await this.rolesService.findByName(role)) as {
-        id: number;
-        createdAt: Date;
-        name: string;
-      };
-      if (roleRecord) {
-        where.roleId = roleRecord.id;
-      }
-    }
-
-    if (search) {
+    if (keyword) {
       where.OR = [
-        { username: { contains: search, mode: 'insensitive' } },
-        { fullName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
+        { username: { contains: keyword, mode: 'insensitive' } },
+        { fullName: { contains: keyword, mode: 'insensitive' } },
+        { email: { contains: keyword, mode: 'insensitive' } },
+        { phone: { contains: keyword, mode: 'insensitive' } },
+        { school: { contains: keyword, mode: 'insensitive' } },
       ];
     }
 
-    const [users, total] = await Promise.all([
-      this.usersRepository.findMany({
-        where,
-        skip,
-        take: limit,
-        include: { role: true },
-      }),
-      this.usersRepository.count({ where }),
-    ]);
+    if (roleId) where.roleId = roleId;
+    if (isLocked !== undefined) where.isLocked = isLocked;
 
-    return {
-      data: users.map((user) => this.sanitizeUser(user)),
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return this.usersRepo.findMany(where, skip, limit);
   }
 
-  async findById(id: number) {
-    const user = await this.usersRepository.findOne({
-      where: { id },
-      include: { role: true },
-    });
-
+  // Get a single user by ID
+  async findOne(id: number) {
+    const user = await this.usersRepo.findById(id);
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-
-    return this.sanitizeUser(user);
+    return user;
   }
 
-  async findByUsername(username: string) {
-    return this.usersRepository.findOne({
-      where: { username },
-      include: { role: true },
-    });
+  // Update a user
+  async update(id: number, dto: UpdateUserDto) {
+    await this.findOne(id); // Ensure user exists
+    return this.usersRepo.update(id, dto);
   }
 
-  async findByEmail(email: string) {
-    if (!email) return null;
-    return this.usersRepository.findOne({
-      where: { email },
-      include: { role: true },
-    });
-  }
-
-  async findByUsernameOrEmail(username: string, email?: string) {
-    let where: UserWhereUniqueInput | undefined;
-
-    if (username) {
-      where = { username };
-    } else if (email) {
-      where = { email };
-    } else {
-      return null;
-    }
-
-    return this.usersRepository.findOne({
-      where,
-      include: { role: true },
-    });
-  }
-
-  async findPasswordById(id: number) {
-    const user = await this.usersRepository.findOne({
-      where: { id },
-      include: { role: true },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-
-    return user.password;
-  }
-
-  async update(id: number, updateUserDto: UpdateUserDto) {
-    // Check if user exists
-    const existingUser = (await this.findById(id)) as UpdateUserDto;
-    if (!existingUser) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-
-    // Check if new username/email already exists
-    const { username, email, role, password } = updateUserDto;
-    if (username || email) {
-      const duplicateUser = await this.usersRepository.findMany({
-        where: {
-          OR: [{ username }, { email }],
-          NOT: { id },
-        },
-        take: 1,
-      });
-
-      if (duplicateUser.length > 0) {
-        throw new ConflictException('Username or email already exists');
-      }
-    }
-
-    // Update role if specified
-    if (role) {
-      const foundRole = await this.rolesService.findByName(role);
-      updateUserDto.role = foundRole.name;
-      delete updateUserDto.role;
-    }
-
-    // Hash password if provided
-    if (password) {
-      updateUserDto.password = await bcrypt.hash(password, 10);
-    }
-
-    const updatedUser = await this.usersRepository.update({
-      where: { id },
-      data: updateUserDto as UserUpdateInput,
-      include: { role: true },
-    });
-
-    return this.sanitizeUser(updatedUser);
-  }
-
+  // Delete a user
   async remove(id: number) {
-    // Check if user exists
-    const existingUser = (await this.findById(id)) as UpdateUserDto;
-    if (!existingUser) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-
-    // Soft delete (update isDeleted flag) or hard delete
-    // For now, we'll do hard delete
-    await this.usersRepository.delete({ where: { id } });
-
-    return { message: 'User deleted successfully' };
-  }
-
-  async lockUser(id: number) {
-    const user = (await this.findById(id)) as UpdateUserDto;
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-
-    const updatedUser = await this.usersRepository.update({
-      where: { id },
-      data: { isLocked: true },
-    });
-
-    return this.sanitizeUser(updatedUser);
-  }
-
-  async unlockUser(id: number) {
-    const user = (await this.findById(id)) as UpdateUserDto;
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-
-    const updatedUser = await this.usersRepository.update({
-      where: { id },
-      data: { isLocked: false },
-    });
-
-    return this.sanitizeUser(updatedUser);
-  }
-
-  // Search users by name, username, or email
-  async search(searchTerm: string) {
-    if (!searchTerm || searchTerm.length < 2) {
-      throw new BadRequestException(
-        'Search term must be at least 2 characters',
-      );
-    }
-
-    return this.usersRepository.searchUsers(searchTerm);
-  }
-
-  // Get users by role
-  async findByRole(roleName: string) {
-    return this.usersRepository.findByRole(roleName);
-  }
-
-  sanitizeUser(user: User) {
-    if (!user) return null;
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...sanitizedUser } = user;
-    return sanitizedUser;
+    await this.findOne(id); // Ensure user exists
+    return this.usersRepo.delete(id);
   }
 }

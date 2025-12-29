@@ -1,85 +1,64 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../infra/prisma/prisma.service';
+import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from 'generated/prisma/client';
 
+import { PrismaService } from '@/infra/prisma/prisma.service';
+
+// Repository for managing User entities using Prisma ORM
 @Injectable()
 export class UsersRepository {
+  private readonly logger = new Logger(UsersRepository.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.UserCreateInput) {
+  // Create a new user
+  create(data: Prisma.UserCreateInput) {
     return this.prisma.user.create({ data });
   }
 
-  async findMany(params: {
-    skip?: number;
-    take?: number;
-    cursor?: Prisma.UserWhereUniqueInput;
-    where?: Prisma.UserWhereInput;
-    orderBy?: Prisma.UserOrderByWithRelationInput;
-    include?: Prisma.UserInclude;
-  }) {
-    const { skip, take, cursor, where, orderBy, include } = params;
-    return this.prisma.user.findMany({
-      skip,
-      take,
-      cursor,
-      where,
-      orderBy,
-      include,
+  // Find a user by ID
+  findById(id: number) {
+    return this.prisma.user.findUnique({
+      where: { id },
+      include: { role: true },
     });
   }
 
-  async findOne(params: {
-    where: Prisma.UserWhereUniqueInput;
-    include?: Prisma.UserInclude;
-  }) {
-    const { where, include } = params;
-    return this.prisma.user.findUnique({ where, include });
+  // Find a user by unique fields
+  findByUnique(where: Prisma.UserWhereUniqueInput) {
+    return this.prisma.user.findUnique({ where });
   }
 
-  async update(params: {
-    where: Prisma.UserWhereUniqueInput;
-    data: Prisma.UserUpdateInput;
-    include?: Prisma.UserInclude;
-  }) {
-    const { where, data, include } = params;
-    return this.prisma.user.update({ where, data, include });
+  // Find multiple users with various query parameters
+  async findMany(
+    where: Prisma.UserWhereInput,
+    skip: number,
+    take: number,
+    cursor?: Prisma.UserWhereUniqueInput,
+    orderBy?: Prisma.UserOrderByWithRelationInput,
+    include?: Prisma.UserInclude,
+  ) {
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take,
+        cursor,
+        orderBy: orderBy ? orderBy : { createdAt: 'desc' },
+        include: include ? include : { role: true },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
-  async delete(params: { where: Prisma.UserWhereUniqueInput }) {
-    const { where } = params;
-    return this.prisma.user.delete({ where });
+  // Update a user
+  update(id: number, data: Prisma.UserUpdateInput) {
+    return this.prisma.user.update({ where: { id }, data });
   }
 
-  async count(params: { where?: Prisma.UserWhereInput }) {
-    const { where } = params;
-    return this.prisma.user.count({ where });
-  }
-
-  async findByRole(roleName: string) {
-    return this.prisma.user.findMany({
-      where: {
-        role: { name: roleName },
-        isLocked: false,
-      },
-      include: {
-        role: true,
-      },
-    });
-  }
-
-  async searchUsers(searchTerm: string) {
-    return this.prisma.user.findMany({
-      where: {
-        OR: [
-          { username: { contains: searchTerm, mode: 'insensitive' } },
-          { fullName: { contains: searchTerm, mode: 'insensitive' } },
-          { email: { contains: searchTerm, mode: 'insensitive' } },
-        ],
-      },
-      include: {
-        role: true,
-      },
-    });
+  // Delete a user
+  delete(id: number) {
+    return this.prisma.user.delete({ where: { id } });
   }
 }

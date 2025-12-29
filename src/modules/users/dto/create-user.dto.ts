@@ -1,54 +1,88 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsString,
-  IsEmail,
-  IsOptional,
-  MinLength,
-  MaxLength,
-  Matches,
   IsBoolean,
+  IsEmail,
+  IsInt,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+  IsUrl,
+  MaxLength,
+  MinLength,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 
+// DTO for creating a new user
 export class CreateUserDto {
+  @ApiProperty({
+    description: 'Unique identifier for the user',
+    example: 'student01',
+  })
   @IsString()
   @MinLength(3)
   @MaxLength(50)
-  @Matches(/^[a-zA-Z0-9_]+$/, {
-    message: 'Username can only contain letters, numbers, and underscores',
-  })
   username: string;
 
+  @ApiProperty({
+    description: 'Password for the user account',
+    example: 'StrongP@ssw0rd!',
+  })
   @IsString()
-  @MinLength(6)
-  @MaxLength(100)
+  @MinLength(8)
+  @MaxLength(255)
   password: string;
 
+  @ApiProperty({
+    description: 'Full name of the user',
+    example: 'Nguyen Van A',
+  })
   @IsString()
-  @MinLength(2)
+  @MinLength(3)
   @MaxLength(100)
   fullName: string;
 
+  @ApiPropertyOptional({
+    description: 'Email address of the user',
+    example: 'student01@gmail.com',
+  })
   @IsOptional()
   @IsEmail()
-  @Transform(({ value }) => value?.toLowerCase())
   email?: string;
 
+  @ApiPropertyOptional({
+    description: 'Phone number of the user',
+    example: '0123456789',
+  })
   @IsOptional()
   @IsString()
-  @Matches(/^\+?[1-9]\d{1,14}$/, {
-    message: 'Phone number must be in E.164 format',
-  })
+  @IsPhoneNumber('VI')
   phone?: string;
 
+  @ApiPropertyOptional({
+    description: 'School or institution the user is affiliated with',
+    example: 'University of Information Technology, VNU HCM',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(255)
   school?: string;
 
+  @ApiPropertyOptional({ description: 'Role ID of the user', example: 2 })
   @IsOptional()
-  @IsString()
-  role?: string = 'student';
+  @IsInt()
+  roleId?: number;
 
+  @ApiPropertyOptional({
+    description: 'Avatar URL of the user',
+    example: 'http://example.com/avatar.jpg',
+  })
+  @IsOptional()
+  @IsUrl()
+  imageUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'Indicates whether the user account is locked',
+    example: false,
+  })
   @IsOptional()
   @IsBoolean()
   isLocked?: boolean = false;

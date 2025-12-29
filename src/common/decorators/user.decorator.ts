@@ -1,4 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+
 import { AuthUser } from '../interfaces/auth-user';
 
 // Extracts the current user from the request (JWT payload)

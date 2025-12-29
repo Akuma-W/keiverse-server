@@ -1,30 +1,31 @@
+import { Public } from '@common/decorators/public.decorator';
+import { GetUser } from '@common/decorators/user.decorator';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import {
-  Controller,
-  Post,
   Body,
-  UseGuards,
+  Controller,
+  Get,
   HttpCode,
   HttpStatus,
-  Res,
+  Post,
   Req,
-  Get,
+  Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
-import type { Response, Request } from 'express';
-import { AuthService } from './auth.service';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
+
+import { AuthService } from './auth.service';
 import { ChangePasswordDto, LoginDto, RegisterDto } from './dto';
 import { Tokens } from './entities/tokens.entity';
-import { Public } from '@/common/decorators/public.decorator';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { RefreshJwtGuard } from './guards/refresh-jwt.guard';
-import { GetUser } from '@/common/decorators/user.decorator';
-import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
