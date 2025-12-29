@@ -1,56 +1,19 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { ROLES_KEY } from '../decorators/roles.decorator';
+import { AuthUser } from '../interfaces/auth-user';
+import { Role } from '../enums/roles.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(
-    private reflector: Reflector,
-    private prisma: PrismaService,
-  ) {}
+  constructor(private reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+  canActivate(ctx: ExecutionContext): boolean {
+    const roles = this.reflector.get<Role[]>('roles', ctx.getHandler());
 
-    if (!requiredRoles) {
-      return true;
-    }
+    if (!roles) return true;
 
-    const request = context
-      .switchToHttp()
-      .getRequest<{ user: { id: number } }>();
-    const userId = request.user?.id;
+    const { user } = ctx.switchToHttp().getRequest<{ user: AuthUser }>();
 
-    if (!userId) {
-      throw new ForbiddenException('User not authenticated');
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { role: true },
-    });
-
-    if (!user) {
-      throw new ForbiddenException('User not found');
-    }
-
-    const hasRole = requiredRoles.some((role) => role === user.role.name);
-
-    if (!hasRole) {
-      throw new ForbiddenException(
-        `Required roles: ${requiredRoles.join(', ')}, Your role: ${user.role.name}`,
-      );
-    }
-
-    return true;
+    return roles.includes(user.role);
   }
 }

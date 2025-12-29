@@ -1,31 +1,26 @@
-import { NestFactory, Reflector } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { ConfigService } from '@nestjs/config';
-import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { HttpExceptionsFilter } from './common/exceptions/http-exception.filter';
+import { AppModule } from './app.module';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   // Create app instance
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-  const reflector = app.get(Reflector);
 
-  // Security
+  // Helmet: Security headers
   app.use(helmet());
+  // CORS: allows requests from the frontend application
   app.enableCors({
-    origin: configService.get<string>('app.clientUrl'),
+    origin: configService.get<string[]>('app.cors.origins'),
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
   // Cookie parser
   app.use(cookieParser());
-  // Global pipes
+  // Global pipes (validation)
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -33,27 +28,18 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-  // Global guards
-  app.useGlobalGuards(new JwtAuthGuard(reflector));
-  // Global interceptors
-  app.useGlobalInterceptors(new ResponseInterceptor());
-  // Global filters
-  app.useGlobalFilters(new HttpExceptionsFilter());
   // API versioning
   app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: '1',
+    defaultVersion: configService.get<string>('app.version'),
   });
 
-  // ---------- Swagger (OpenAPI) ----------
-  // Setup Swagger with Bearer Auth (JWT) and brief docs.
+  // Setup Swagger with Bearer Auth (JWT) and brief docs
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('KEIVerse API')
-    .setDescription(
-      'KEIVerse — Interactive Learning Platform API documentation',
-    )
-    .setVersion('1.0')
+    .setTitle(configService.get<string>('app.name') || 'KEIVerse API')
+    .setDescription('Interactive Learning Platform API documentation')
+    .setVersion(configService.get<string>('app.version') || '1')
     .addBearerAuth(
       {
         type: 'http',
@@ -68,25 +54,21 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
-
-  // Health check endpoint
-  app.getHttpAdapter().get('/health', (req, res) => {
-    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
+  SwaggerModule.setup(
+    configService.get<string>('app.swagger.path') || 'api/docs',
+    app,
+    document,
+  );
 
   // ---------- Start server ----------
   const port = configService.get<number>('app.port') || 3000;
   await app.listen(port);
-  console.log(
-    `🚀 Server is running at http://localhost:${configService.get('PORT') || 3000}`,
-  );
-  console.log(
-    `📘 Swagger: http://localhost:${configService.get('PORT') || 3000}/api/docs`,
-  );
-}
 
+  console.log(`🚀 Server is running at http://localhost:${port}`);
+  console.log(`📚 API docs available at http://localhost:${port}/api/docs`);
+}
+// Handle bootstrap errors
 bootstrap().catch((err) => {
-  console.error('Failed to bootstrap application', err);
+  console.error('❌ Server failed to start', err);
   process.exit(1);
 });

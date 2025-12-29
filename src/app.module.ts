@@ -1,25 +1,33 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
-import { appConfig, databaseConfig, jwtConfig, redisConfig } from './config';
-import { JwtAuthGuard, RolesGuard } from './common/guards';
+import configs from './config';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
+import { HttpExceptionsFilter } from './common/exceptions/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { PrismaModule } from './prisma/prisma.module';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { RolesModule } from './roles/roles.module';
-import { ClassroomsModule } from './classrooms/classrooms.module';
-import { EnrollmentsModule } from './enrollments/enrollments.module';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { AppController } from './app.controller';
+import { PrismaModule } from './infra/prisma/prisma.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { ClassroomsModule } from './modules/classrooms/classrooms.module';
+import { EnrollmentsModule } from './modules/enrollments/enrollments.module';
+import { RedisModule } from './infra/redis/redis.module';
+import { CloudinaryModule } from './infra/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
+    // Global configuration module
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, redisConfig, jwtConfig],
+      load: configs,
     }),
+    // Rate limiting
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -30,6 +38,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
         },
       ],
     }),
+    // Cache module with Redis
     CacheModule.registerAsync({
       isGlobal: true,
       imports: [ConfigModule],
@@ -41,15 +50,20 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
       }),
       inject: [ConfigService],
     }),
+    // Infras module
     PrismaModule,
+    RedisModule,
+    CloudinaryModule,
+    // Application modules
     AuthModule,
     UsersModule,
     RolesModule,
     ClassroomsModule,
     EnrollmentsModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [
+    // Global guards
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
@@ -62,9 +76,19 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
+    // Global interceptors
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
+    },
+    // Global filters
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionsFilter,
     },
   ],
 })
