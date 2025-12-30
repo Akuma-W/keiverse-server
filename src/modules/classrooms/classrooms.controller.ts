@@ -15,7 +15,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { GetUser } from '@/common/decorators/user.decorator';
 import { Role } from '@/common/enums/roles.enum';
-import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
 import type { AuthUser } from '@/common/interfaces/auth-user';
 
 import { ClassroomsService } from './classrooms.service';
@@ -28,7 +28,7 @@ import {
 @ApiTags('Classrooms')
 @ApiBearerAuth('access-token')
 @Controller('classrooms')
-@UseGuards(JwtAuthGuard)
+@UseGuards(RolesGuard)
 export class ClassroomsController {
   constructor(private readonly classroomsService: ClassroomsService) {}
 

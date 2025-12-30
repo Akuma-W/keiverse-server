@@ -86,18 +86,14 @@ export class ClassroomsService {
   }
 
   // Update a classroom
-  async update(
-    id: number,
-    dto: UpdateClassroomDto,
-    user: { id: number; role: string },
-  ) {
+  async update(id: number, dto: UpdateClassroomDto, user: AuthUser) {
     // Check if classroom exists
     const classroom = await this.classroomsRepo.findById(id);
     if (!classroom) {
       throw new NotFoundException(`Classroom with ID ${id} not found`);
     }
-    // Check user is admin or teacher
-    if (this.checkRole(classroom.teacherId, user)) {
+    // Check user can manager
+    if (this.canManagerClassroom(classroom.teacherId, user)) {
       throw new ForbiddenException('No permission to update classroom');
     }
 
@@ -107,14 +103,14 @@ export class ClassroomsService {
   }
 
   // Delete a classroom
-  async remove(id: number, user: { id: number; role: string }) {
+  async remove(id: number, user: AuthUser) {
     // Check if classroom exists
     const classroom = await this.classroomsRepo.findById(id);
     if (!classroom) {
       throw new NotFoundException(`Classroom with ID ${id} not found`);
     }
-    // Check user is admin or teacher
-    if (this.checkRole(classroom.teacherId, user)) {
+    // Check user can manager
+    if (this.canManagerClassroom(classroom.teacherId, user)) {
       throw new ForbiddenException('No permission to delete classroom');
     }
 
@@ -128,7 +124,7 @@ export class ClassroomsService {
     return randomBytes(6).toString('hex').toUpperCase();
   }
 
-  private checkRole(teacherId: number, user: { id: number; role: string }) {
-    return user.role !== 'admin' && teacherId !== user.id;
+  private canManagerClassroom(teacherId: number, user: AuthUser) {
+    return user.role !== Role.ADMIN && teacherId !== user.id;
   }
 }
