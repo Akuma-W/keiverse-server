@@ -54,7 +54,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  @IsPhoneNumber('VI')
+  @IsPhoneNumber('VN')
   phone?: string;
 
   @ApiPropertyOptional({

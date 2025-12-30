@@ -1,35 +1,35 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
-  Put,
+  Controller,
   Delete,
-  Query,
+  Get,
+  Param,
   ParseIntPipe,
-  UseGuards,
   Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
+  ApiOperation,
   ApiQuery,
+  ApiTags,
 } from '@nestjs/swagger';
-import { EnrollmentsService } from './enrollments.service';
+import { Prisma } from 'generated/prisma/client';
+
+import { Roles } from '@/common/decorators/roles.decorator';
+import { GetUser } from '@/common/decorators/user.decorator';
+import { Role } from '@/common/enums/roles.enum';
+
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import {
   CreateEnrollmentDto,
   QueryEnrollmentsDto,
   UpdateEnrollmentDto,
 } from './dto';
-import { Enrollment } from './entities/enrollment.entity';
-import { Prisma } from 'generated/prisma/client';
-import { Roles } from '@/common/decorators/roles.decorator';
-import { Role } from '@/common/enums/roles.enum';
-import { GetUser } from '@/common/decorators/user.decorator';
+import { EnrollmentsService } from './enrollments.service';
 
 @ApiTags('enrollments')
 @ApiBearerAuth('access-token')
@@ -43,8 +43,6 @@ export class EnrollmentsController {
   // -------------------------------------------------------
   @Post()
   @ApiOperation({ summary: 'Create a new enrollment' })
-  @ApiResponse({ status: 201, type: Enrollment })
-  @ApiResponse({ status: 409, description: 'User already enrolled' })
   @Roles(Role.ADMIN, Role.TEACHER)
   create(@Body() createEnrollmentDto: CreateEnrollmentDto) {
     return this.enrollmentsService.create(createEnrollmentDto);
@@ -88,7 +86,7 @@ export class EnrollmentsController {
   getClassroomEnrollments(
     @Param('classId', ParseIntPipe) classId: number,
     @Query('status') status?: string,
-    @GetUser('id') userId?: number,
+    @GetUser('sub') userId?: number,
   ) {
     return this.enrollmentsService.getClassroomEnrollments(
       classId,
@@ -118,7 +116,7 @@ export class EnrollmentsController {
   @ApiOperation({ summary: 'Get current user enrollments' })
   @ApiQuery({ name: 'status', required: false })
   getMyEnrollments(
-    @GetUser('id') userId: number,
+    @GetUser('sub') userId: number,
     @Query('status') status?: string,
   ) {
     return this.enrollmentsService.getUserEnrollments(userId, status);
@@ -165,7 +163,7 @@ export class EnrollmentsController {
   @Roles(Role.TEACHER)
   approve(
     @Param('id', ParseIntPipe) id: number,
-    @GetUser('id') teacherId: number,
+    @GetUser('sub') teacherId: number,
   ) {
     return this.enrollmentsService.approveEnrollment(id, teacherId);
   }
@@ -178,7 +176,7 @@ export class EnrollmentsController {
   @Roles(Role.TEACHER)
   reject(
     @Param('id', ParseIntPipe) id: number,
-    @GetUser('id') teacherId: number,
+    @GetUser('sub') teacherId: number,
   ) {
     return this.enrollmentsService.rejectEnrollment(id, teacherId);
   }

@@ -28,6 +28,14 @@ export class UsersRepository {
     return this.prisma.user.findUnique({ where });
   }
 
+  // Find the first user
+  findFirst(where: Prisma.UserWhereInput) {
+    return this.prisma.user.findFirst({
+      where,
+      include: { role: true },
+    });
+  }
+
   // Find multiple users with various query parameters
   async findMany(
     where: Prisma.UserWhereInput,

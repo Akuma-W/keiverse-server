@@ -23,4 +23,18 @@ export default registerAs('infra', () => ({
     ttl: Number(process.env.RATE_LIMIT_TTL || 60),
     limit: Number(process.env.RATE_LIMIT_MAX || 100),
   },
+  // Nodemailer - Email
+  email: {
+    host: process.env.EMAIL_HOST,
+    port: Number(process.env.EMAIL_PORT),
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+    from: process.env.EMAIL_FROM,
+  },
+  // Twilio - SMS
+  twilio: {
+    account_sid: process.env.TWILIO_ACCOUNT_SID,
+    auth_token: process.env.TWILIO_AUTH_TOKEN,
+    from: process.env.TWILIO_FROM,
+  },
 }));

@@ -50,6 +50,7 @@ export class QueryUsersDto {
     default: 1,
     example: 1,
   })
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Type(() => Number)

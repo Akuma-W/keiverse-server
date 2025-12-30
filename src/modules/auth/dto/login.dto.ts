@@ -1,15 +1,23 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, MaxLength, MinLength } from 'class-validator';
 
+// DTO for user login
 export class LoginDto {
-  @ApiProperty({ example: 'student123' })
+  @ApiProperty({
+    description: 'Username or email or phone number of the user',
+    example: 'student123 | student01@gmail.com | 0123456789',
+  })
   @IsString()
   @MinLength(3)
   @MaxLength(50)
-  username: string;
+  identifier: string;
 
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({
+    description: 'Password for the user account',
+    example: 'StrongP@ssw0rd!',
+  })
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
+  @MaxLength(255)
   password: string;
 }

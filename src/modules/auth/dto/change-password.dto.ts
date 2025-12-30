@@ -1,13 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, MinLength } from 'class-validator';
+import { IsString, MaxLength, MinLength } from 'class-validator';
 
+// DTO for changing user password
 export class ChangePasswordDto {
-  @ApiProperty({ example: 'oldPassword123' })
+  @ApiProperty({
+    description: 'The current password of the user',
+    example: 'oldPassword123',
+  })
   @IsString()
-  currentPassword: string;
+  oldPassword: string;
 
-  @ApiProperty({ example: 'newPassword123' })
+  @ApiProperty({
+    description: 'The new password for the user',
+    example: 'newSecurePassword456',
+  })
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
+  @MaxLength(255)
   newPassword: string;
 }

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import { Prisma } from 'generated/prisma/client';
 
 import { CreateUserDto, QueryUsersDto, UpdateUserDto } from './dto';
 import { UsersRepository } from './repositories/users.repository';
@@ -22,7 +23,7 @@ export class UsersService {
 
   // Create a new user
   async create(dto: CreateUserDto) {
-    const { username, email, roleId, password } = dto;
+    const { username, email, roleId, password, ...rest } = dto;
 
     // Check if username already exists
     const existedUsername = await this.usersRepo.findByUnique({ username });
@@ -42,9 +43,11 @@ export class UsersService {
 
     this.logger.log(`Creating user with username: ${username}`);
     return this.usersRepo.create({
-      ...dto,
+      username,
       password: hashedPassword,
+      email,
       role: { connect: { id: roleId } },
+      ...rest,
     });
   }
 
@@ -53,11 +56,7 @@ export class UsersService {
     const { page = 1, limit = 10, keyword, roleId, isLocked } = query;
 
     const skip = (page - 1) * limit;
-    const where = {
-      OR: [] as any[],
-      roleId: 0,
-      isLocked: false,
-    };
+    const where: Prisma.UserWhereInput = {};
 
     if (keyword) {
       where.OR = [
@@ -84,6 +83,16 @@ export class UsersService {
     }
     this.logger.log(`Fetching user with ID: ${id}`);
     return user;
+  }
+
+  findByIndentifier(identifier: string) {
+    return this.usersRepo.findFirst({
+      OR: [
+        { username: identifier },
+        { email: identifier },
+        { phone: identifier },
+      ],
+    });
   }
 
   // Update a user

@@ -45,7 +45,7 @@ export class ClassroomsController {
   @Roles(Role.TEACHER, Role.ADMIN)
   async create(
     @Body() createClassroomDto: CreateClassroomDto,
-    @GetUser('id') userId: number,
+    @GetUser('sub') userId: number,
   ) {
     return this.classroomsService.create(createClassroomDto, userId);
   }
@@ -84,7 +84,7 @@ export class ClassroomsController {
   // ---------------------------
   @Get('my')
   @ApiOperation({ summary: 'Get all classrooms of the current user' })
-  async getMyClassrooms(@GetUser('id') userId: number) {
+  async getMyClassrooms(@GetUser('sub') userId: number) {
     return this.classroomsService.findAll({
       where: {
         OR: [
@@ -111,7 +111,7 @@ export class ClassroomsController {
   @Roles(Role.STUDENT)
   async join(
     @Body() joinClassroomDto: JoinClassroomDto,
-    @GetUser('id') userId: number,
+    @GetUser('sub') userId: number,
   ) {
     return this.classroomsService.joinClassroom(joinClassroomDto, userId);
   }
@@ -123,7 +123,7 @@ export class ClassroomsController {
   @ApiOperation({ summary: 'Get classroom members' })
   async getMembers(
     @Param('id', ParseIntPipe) id: number,
-    @GetUser('id') userId: number,
+    @GetUser('sub') userId: number,
   ) {
     return this.classroomsService.getMembers(id, userId);
   }
@@ -148,7 +148,7 @@ export class ClassroomsController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateData: Prisma.ClassroomUpdateInput,
-    @GetUser('id') userId: number,
+    @GetUser('sub') userId: number,
   ) {
     return this.classroomsService.update(id, updateData, userId);
   }
@@ -161,7 +161,7 @@ export class ClassroomsController {
   @Roles(Role.TEACHER, Role.ADMIN)
   async remove(
     @Param('id', ParseIntPipe) id: number,
-    @GetUser('id') userId: number,
+    @GetUser('sub') userId: number,
   ) {
     return this.classroomsService.remove(id, userId);
   }
