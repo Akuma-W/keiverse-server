@@ -1,86 +1,64 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../infra/prisma/prisma.service';
 import { Prisma } from 'generated/prisma/client';
+
+import { PrismaService } from '@/infra/prisma/prisma.service';
 
 @Injectable()
 export class ClassroomsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.ClassroomCreateInput) {
+  // Create new classroom
+  create(data: Prisma.ClassroomCreateInput) {
     return this.prisma.classroom.create({ data });
   }
 
-  async findUnique(args: Prisma.ClassroomFindUniqueArgs) {
-    return this.prisma.classroom.findUnique(args);
-  }
-
-  async findMany(args: Prisma.ClassroomFindManyArgs) {
-    return this.prisma.classroom.findMany(args);
-  }
-
-  async update(args: Prisma.ClassroomUpdateArgs) {
-    return this.prisma.classroom.update(args);
-  }
-
-  async delete(args: Prisma.ClassroomDeleteArgs) {
-    return this.prisma.classroom.delete(args);
-  }
-
-  async count(args: Prisma.ClassroomCountArgs) {
-    return this.prisma.classroom.count(args);
-  }
-
-  async findByCode(code: string) {
-    return this.prisma.classroom.findUnique({
-      where: { code },
-      include: {
-        teacher: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            email: true,
-          },
-        },
-      },
-    });
-  }
-
-  async getUserClassrooms(userId: number, role?: string) {
-    const where: Prisma.ClassroomWhereInput = {
-      enrollments: {
-        some: {
-          userId,
-          ...(role && { roleIn: role }),
-        },
-      },
-    };
-
+  // Find classroom by query
+  async findMany(
+    where: Prisma.ClassroomWhereInput,
+    skip: number,
+    take: number,
+  ) {
     return this.prisma.classroom.findMany({
       where,
-      include: {
-        teacher: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-          },
-        },
-        enrollments: {
-          where: { userId },
-          select: {
-            roleIn: true,
-            status: true,
-          },
-        },
-        _count: {
-          select: {
-            enrollments: {
-              where: { status: 'approved' },
-            },
-          },
-        },
-      },
+      skip,
+      take,
+      include: { teacher: true },
     });
+  }
+
+  // Find classroom by id
+  findById(id: number) {
+    return this.prisma.classroom.findUnique({
+      where: { id },
+      include: { teacher: true },
+    });
+  }
+
+  // Find classroom by code
+  findByCode(code: string) {
+    return this.prisma.classroom.findUnique({
+      where: { code },
+      include: { teacher: true },
+    });
+  }
+
+  // Update classroom
+  update(id: number, data: Prisma.ClassroomUpdateInput) {
+    return this.prisma.classroom.update({
+      where: { id },
+      data,
+    });
+  }
+
+  // Delete a classroom
+  delete(id: number) {
+    return this.prisma.classroom.delete({
+      where: { id },
+    });
+  }
+
+  // Count number of classroom
+  count(where: Prisma.ClassroomWhereInput) {
+    return this.prisma.classroom.count({ where });
   }
 }

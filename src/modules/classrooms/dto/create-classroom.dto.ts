@@ -1,40 +1,52 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsString,
-  IsOptional,
   IsDateString,
-  MinLength,
+  IsInt,
+  IsOptional,
+  IsString,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 
 export class CreateClassroomDto {
-  @ApiProperty({ example: 'Introduction to Programming' })
+  @ApiProperty({
+    description: 'Classroom name',
+    example: 'Introduction to Programming',
+  })
   @IsString()
   @MinLength(3)
   @MaxLength(100)
   title: string;
 
-  @ApiProperty({ example: 'Learn programming basics', required: false })
+  @ApiPropertyOptional({
+    description: 'Classroom description',
+    example: 'Learn programming basics',
+  })
   @IsOptional()
   @IsString()
-  @MaxLength(500)
   description?: string;
 
-  @ApiProperty({
-    example: '2025-01-01T00:00:00.000Z',
+  @ApiPropertyOptional({
     description: 'Start date of the term (ISO Date)',
-    required: false,
+    example: '2025-09-01T00:00:00.000Z',
   })
   @IsOptional()
   @IsDateString()
   termStart?: Date;
 
-  @ApiProperty({
-    example: '2025-05-31T23:59:59.000Z',
+  @ApiPropertyOptional({
     description: 'End date of the term (ISO Date)',
-    required: false,
+    example: '2025-12-31T23:59:59.000Z',
   })
   @IsOptional()
   @IsDateString()
   termEnd?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Teacher ID (admin only)',
+    example: 1,
+  })
+  @IsOptional()
+  @IsInt()
+  teacherId?: number;
 }

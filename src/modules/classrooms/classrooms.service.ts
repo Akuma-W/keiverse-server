@@ -1,282 +1,134 @@
 import {
-  Injectable,
-  NotFoundException,
+  BadRequestException,
   ForbiddenException,
-  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
 } from '@nestjs/common';
-import { ClassroomsRepository } from './repositories/classrooms.repository';
-import { EnrollmentsRepository } from '../enrollments/repositories/enrollments.repository';
-import { CreateClassroomDto } from './dto/create-classroom.dto';
-import { JoinClassroomDto } from './dto/join-classroom.dto';
+import { randomBytes } from 'crypto';
 import { Prisma } from 'generated/prisma/client';
+
+import { Role } from '@/common/enums/roles.enum';
+import { AuthUser } from '@/common/interfaces/auth-user';
+
+import {
+  CreateClassroomDto,
+  QueryClassroomsDto,
+  UpdateClassroomDto,
+} from './dto';
+import { ClassroomsRepository } from './repositories/classrooms.repository';
 
 @Injectable()
 export class ClassroomsService {
-  constructor(
-    private classroomsRepository: ClassroomsRepository,
-    private enrollmentsRepository: EnrollmentsRepository,
-  ) {}
+  private readonly logger = new Logger(ClassroomsService.name);
 
-  /**
-   * Create a new classroom
-   */
-  async create(createClassroomDto: CreateClassroomDto, teacherId: number) {
+  constructor(private classroomsRepo: ClassroomsRepository) {}
+
+  // Create a new classroom
+  async create(dto: CreateClassroomDto, user: AuthUser) {
+    // Logic between teacher and admin
+    if (user.role === Role.ADMIN && !dto.teacherId) {
+      throw new BadRequestException('TeacherId is required');
+    }
+    const teacherId = user.role === Role.ADMIN ? dto.teacherId : user.id;
+
     // Generate unique class code
     const code = this.generateClassCode();
-    // const { termStart, termEnd } = createClassroomDto;
 
-    const classroom = await this.classroomsRepository.create({
-      ...createClassroomDto,
+    const classroom = await this.classroomsRepo.create({
+      ...dto,
       code,
       teacher: { connect: { id: teacherId } },
     });
 
-    // Auto-enroll teacher as teacher role
-    await this.enrollmentsRepository.create({
-      user: { connect: { id: teacherId } },
-      classroom: { connect: { id: classroom.id } },
-      roleIn: 'teacher',
-      status: 'approved',
-    });
-
+    this.logger.debug(`Classroom created: ${classroom.id}`);
     return classroom;
   }
 
-  /**
-   * Find all classrooms with filtering and pagination
-   */
-  async findAll(args?: Prisma.ClassroomFindManyArgs) {
-    const [classrooms, total] = await Promise.all([
-      this.classroomsRepository.findMany({
-        ...args,
-        include: {
-          teacher: {
-            select: {
-              id: true,
-              username: true,
-              fullName: true,
-            },
-          },
-          _count: {
-            select: {
-              enrollments: {
-                where: { status: 'approved' },
-              },
-            },
-          },
-        },
-      }),
-      this.classroomsRepository.count({ where: args?.where }),
+  // Find all classrooms with filtering and pagination
+  async findAll(query: QueryClassroomsDto) {
+    const { page, limit, keyword } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ClassroomWhereInput = keyword
+      ? {
+          title: { contains: keyword, mode: 'insensitive' },
+        }
+      : {};
+
+    const [data, total] = await Promise.all([
+      this.classroomsRepo.findMany(where, skip, limit),
+      this.classroomsRepo.count(where),
     ]);
 
     return {
-      data: classrooms,
-      total,
-      page: args?.skip && args?.take ? args.skip / args.take + 1 : 1,
-      limit: args?.take,
-      totalPages: args?.take ? Math.ceil(total / args.take) : 1,
+      data,
+      pagination: { total, page, limit },
     };
   }
 
-  /**
-   * Find a classroom by ID
-   */
-  async findOne(id: number, includeTeacher = false) {
-    const classroom = await this.classroomsRepository.findUnique({
-      where: { id },
-      include: includeTeacher
-        ? {
-            teacher: {
-              select: {
-                id: true,
-                username: true,
-                fullName: true,
-                email: true,
-              },
-            },
-          }
-        : undefined,
-    });
-
+  // Find a classroom by ID
+  async findOne(id: number) {
+    const classroom = await this.classroomsRepo.findById(id);
     if (!classroom) {
       throw new NotFoundException(`Classroom with ID ${id} not found`);
     }
-
     return classroom;
   }
 
-  /**
-   * Update a classroom
-   */
+  // Find a classroom by code
+  async findByCode(code: string) {
+    const classroom = await this.classroomsRepo.findByCode(code);
+    if (!classroom) {
+      throw new NotFoundException(`Classroom with Code ${code} not found`);
+    }
+    return classroom;
+  }
+
+  // Update a classroom
   async update(
     id: number,
-    updateData: Prisma.ClassroomUpdateInput,
-    userId: number,
+    dto: UpdateClassroomDto,
+    user: { id: number; role: string },
   ) {
-    // Check if classroom exists and user is teacher
-    const classroom = await this.classroomsRepository.findUnique({
-      where: { id },
-    });
-
+    // Check if classroom exists
+    const classroom = await this.classroomsRepo.findById(id);
     if (!classroom) {
       throw new NotFoundException(`Classroom with ID ${id} not found`);
     }
-
-    if (classroom.teacherId !== userId) {
-      throw new ForbiddenException(
-        'Only the teacher can update this classroom',
-      );
+    // Check user is admin or teacher
+    if (this.checkRole(classroom.teacherId, user)) {
+      throw new ForbiddenException('No permission to update classroom');
     }
 
-    return this.classroomsRepository.update({
-      where: { id },
-      data: updateData,
-    });
+    const updated = await this.classroomsRepo.update(id, dto);
+    this.logger.debug(`Classroom updated: ${id}`);
+    return updated;
   }
 
-  /**
-   * Delete a classroom
-   */
-  async remove(id: number, userId: number) {
-    // Check if classroom exists and user is teacher
-    const classroom = await this.classroomsRepository.findUnique({
-      where: { id },
-    });
-
+  // Delete a classroom
+  async remove(id: number, user: { id: number; role: string }) {
+    // Check if classroom exists
+    const classroom = await this.classroomsRepo.findById(id);
     if (!classroom) {
       throw new NotFoundException(`Classroom with ID ${id} not found`);
     }
-
-    if (classroom.teacherId !== userId) {
-      throw new ForbiddenException(
-        'Only the teacher can delete this classroom',
-      );
+    // Check user is admin or teacher
+    if (this.checkRole(classroom.teacherId, user)) {
+      throw new ForbiddenException('No permission to delete classroom');
     }
 
-    return this.classroomsRepository.delete({
-      where: { id },
-    });
+    await this.classroomsRepo.delete(id);
+    this.logger.warn(`Classroom deleted: ${id}`);
+    return { message: 'Classroom deleted successfully' };
   }
 
-  /**
-   * Join a classroom using code
-   */
-  async joinClassroom(joinClassroomDto: JoinClassroomDto, userId: number) {
-    const { code } = joinClassroomDto;
-
-    // Find classroom by code
-    const classroom = await this.classroomsRepository.findByCode(code);
-    if (!classroom) {
-      throw new NotFoundException('Classroom not found with this code');
-    }
-
-    // Check if user is already enrolled
-    const existingEnrollment = await this.enrollmentsRepository.findUnique({
-      where: {
-        userId_classId: {
-          userId,
-          classId: classroom.id,
-        },
-      },
-    });
-
-    if (existingEnrollment) {
-      throw new ConflictException('You are already enrolled in this classroom');
-    }
-
-    // Create enrollment with pending status
-    return this.enrollmentsRepository.create({
-      user: { connect: { id: userId } },
-      classroom: { connect: { id: classroom.id } },
-      roleIn: 'student',
-      status: 'pending',
-    });
-  }
-
-  /**
-   * Get classroom members
-   */
-  async getMembers(classId: number, userId: number) {
-    // Check user access to classroom
-    await this.checkUserAccess(classId, userId);
-
-    const enrollments = (await this.enrollmentsRepository.findMany({
-      where: {
-        classId,
-        status: 'approved',
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            email: true,
-          },
-        },
-      },
-    })) as Prisma.EnrollmentGetPayload<{
-      include: {
-        user: {
-          select: {
-            id: true;
-            username: true;
-            fullName: true;
-            email: true;
-          };
-        };
-      };
-    }>[];
-
-    return enrollments.map((enrollment) => ({
-      userId: enrollment.userId,
-      roleIn: enrollment.roleIn,
-      status: enrollment.status,
-      joinedAt: enrollment.joinedAt,
-      user: enrollment.user,
-    }));
-  }
-
-  /**
-   * Check if user has access to classroom
-   */
-  async checkUserAccess(classId: number, userId: number) {
-    // Check if user is teacher of classroom
-    const classroom = await this.classroomsRepository.findUnique({
-      where: { id: classId },
-    });
-
-    if (classroom?.teacherId === userId) {
-      return true;
-    }
-
-    // Check if user has approved enrollment
-    const enrollment = await this.enrollmentsRepository.findUnique({
-      where: {
-        userId_classId: {
-          userId,
-          classId,
-        },
-        status: 'approved',
-      },
-    });
-
-    if (!enrollment) {
-      throw new ForbiddenException('You do not have access to this classroom');
-    }
-
-    return true;
-  }
-
-  /**
-   * Generate unique class code
-   */
+  // Utils
   private generateClassCode(): string {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return code;
+    return randomBytes(6).toString('hex').toUpperCase();
+  }
+
+  private checkRole(teacherId: number, user: { id: number; role: string }) {
+    return user.role !== 'admin' && teacherId !== user.id;
   }
 }

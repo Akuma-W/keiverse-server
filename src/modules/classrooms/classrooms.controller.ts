@@ -1,33 +1,29 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
-  Put,
+  Controller,
   Delete,
-  Query,
+  Get,
+  Param,
   ParseIntPipe,
+  Patch,
+  Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
-import { ClassroomsService } from './classrooms.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+
+import { Roles } from '@/common/decorators/roles.decorator';
 import { GetUser } from '@/common/decorators/user.decorator';
-import { Prisma } from 'generated/prisma/client';
-import {
-  QueryClassroomsDto,
-  CreateClassroomDto,
-  JoinClassroomDto,
-} from './dto';
 import { Role } from '@/common/enums/roles.enum';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import type { AuthUser } from '@/common/interfaces/auth-user';
+
+import { ClassroomsService } from './classrooms.service';
+import {
+  CreateClassroomDto,
+  QueryClassroomsDto,
+  UpdateClassroomDto,
+} from './dto';
 
 @ApiTags('Classrooms')
 @ApiBearerAuth('access-token')
@@ -36,133 +32,51 @@ import { Role } from '@/common/enums/roles.enum';
 export class ClassroomsController {
   constructor(private readonly classroomsService: ClassroomsService) {}
 
-  // ---------------------------
-  // CREATE CLASSROOM
-  // ---------------------------
+  // Create a classroom
   @Post()
-  @ApiOperation({ summary: 'Create a new classroom' })
-  @ApiResponse({ status: 201, description: 'Classroom created' })
   @Roles(Role.TEACHER, Role.ADMIN)
-  async create(
-    @Body() createClassroomDto: CreateClassroomDto,
-    @GetUser('sub') userId: number,
-  ) {
-    return this.classroomsService.create(createClassroomDto, userId);
+  async create(@Body() dto: CreateClassroomDto, @GetUser() user: AuthUser) {
+    return this.classroomsService.create(dto, user);
   }
 
-  // ---------------------------
-  // FIND ALL CLASSROOMS (ADMIN)
-  // ---------------------------
+  // Find all classroom
   @Get()
-  @ApiOperation({ summary: 'Get all classrooms (search/pagination)' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'search', required: false, type: String })
   async findAll(@Query() query: QueryClassroomsDto) {
-    const { page, limit, search } = query;
-    const skip = (page - 1) * limit;
-    const where: Prisma.ClassroomWhereInput = {};
-
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { code: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    return this.classroomsService.findAll({
-      where,
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.classroomsService.findAll(query);
   }
 
-  // ---------------------------
-  // GET CLASSROOMS OF CURRENT USER
-  // ---------------------------
-  @Get('my')
-  @ApiOperation({ summary: 'Get all classrooms of the current user' })
-  async getMyClassrooms(@GetUser('sub') userId: number) {
-    return this.classroomsService.findAll({
-      where: {
-        OR: [
-          { teacherId: userId },
-          {
-            enrollments: {
-              some: { userId, status: 'approved' },
-            },
-          },
-        ],
-      },
-      include: {
-        teacher: true,
-        _count: { select: { enrollments: true } },
-      },
-    });
-  }
-
-  // ---------------------------
-  // JOIN CLASSROOM BY CODE
-  // ---------------------------
-  @Post('join')
-  @ApiOperation({ summary: 'Join a classroom using code' })
-  @Roles(Role.STUDENT)
-  async join(
-    @Body() joinClassroomDto: JoinClassroomDto,
-    @GetUser('sub') userId: number,
-  ) {
-    return this.classroomsService.joinClassroom(joinClassroomDto, userId);
-  }
-
-  // ---------------------------
-  // CLASSROOM MEMBERS
-  // ---------------------------
-  @Get(':id/members')
-  @ApiOperation({ summary: 'Get classroom members' })
-  async getMembers(
-    @Param('id', ParseIntPipe) id: number,
-    @GetUser('sub') userId: number,
-  ) {
-    return this.classroomsService.getMembers(id, userId);
-  }
-
-  // ---------------------------
-  // FIND CLASSROOM BY ID
-  // ---------------------------
+  // Find classroom by id
   @Get(':id')
-  @ApiOperation({ summary: 'Get classroom by ID' })
-  @ApiResponse({ status: 200, description: 'Classroom found' })
-  @ApiResponse({ status: 404, description: 'Classroom not found' })
+  @Roles()
   async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.classroomsService.findOne(id, true);
+    return this.classroomsService.findOne(id);
   }
 
-  // ---------------------------
-  // UPDATE CLASSROOM
-  // ---------------------------
-  @Put(':id')
-  @ApiOperation({ summary: 'Update classroom' })
+  // Find classroom by code
+  @Get('by-code/:code')
+  @Roles()
+  async findByCode(@Param('code') code: string) {
+    return this.classroomsService.findByCode(code);
+  }
+
+  // Update classroom (admin & teacher)
+  @Patch(':id')
   @Roles(Role.TEACHER, Role.ADMIN)
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateData: Prisma.ClassroomUpdateInput,
-    @GetUser('sub') userId: number,
+    @Body() dto: UpdateClassroomDto,
+    @GetUser() user: AuthUser,
   ) {
-    return this.classroomsService.update(id, updateData, userId);
+    return this.classroomsService.update(id, dto, user);
   }
 
-  // ---------------------------
-  // DELETE CLASSROOM
-  // ---------------------------
+  // Delete classroom
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete classroom' })
   @Roles(Role.TEACHER, Role.ADMIN)
   async remove(
     @Param('id', ParseIntPipe) id: number,
-    @GetUser('sub') userId: number,
+    @GetUser() user: AuthUser,
   ) {
-    return this.classroomsService.remove(id, userId);
+    return this.classroomsService.remove(id, user);
   }
 }
