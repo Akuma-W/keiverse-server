@@ -151,6 +151,7 @@ model Resource {
   id        Int      @id @default(autoincrement())
   classId   Int      @map("class_id")
   title     String   @db.VarChar(255)
+  description String?
   url       String
   type      String   @db.VarChar(20)
   size      Int?

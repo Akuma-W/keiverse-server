@@ -1,9 +1,11 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { ClassroomsService } from './classrooms.service';
-import { ClassroomsController } from './classrooms.controller';
-import { ClassroomsRepository } from './repositories/classrooms.repository';
-import { UsersModule } from '@/modules/users/users.module';
+
 import { EnrollmentsModule } from '@/modules/enrollments/enrollments.module';
+import { UsersModule } from '@/modules/users/users.module';
+
+import { ClassroomsController } from './classrooms.controller';
+import { ClassroomsService } from './classrooms.service';
+import { ClassroomsRepository } from './repositories/classrooms.repository';
 
 @Module({
   imports: [UsersModule, forwardRef(() => EnrollmentsModule)],

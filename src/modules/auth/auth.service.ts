@@ -9,12 +9,14 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 
+import { Role } from '@/common/enums/roles.enum';
+import { JwtPayload } from '@/common/interfaces';
+import { mapRole } from '@/common/utils/role.mapper';
 import { NotificationFacade } from '@/infra/notification/notification.facade';
 import { RedisService } from '@/infra/redis/redis.service';
 
 import { UsersService } from '../users/users.service';
 import { ChangePasswordDto, LoginDto, RegisterDto, VerifyOtpDto } from './dto';
-import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { RegisterOtp } from './interfaces/register-otp.interface';
 import { OtpService } from './otp/otp.service';
 
@@ -101,12 +103,14 @@ export class AuthService {
     if (!match) {
       throw new UnauthorizedException('Invalid credentials: password');
     }
+    const role = mapRole(user.role.name);
+    const tokens = await this.generateTokens(user.id, role);
 
-    return this.generateTokens(user.id, user.role.name);
+    return { user, ...tokens };
   }
 
   // Generate access and refresh tokens
-  async generateTokens(userId: number, role: string) {
+  async generateTokens(userId: number, role: Role) {
     const jti = randomUUID();
 
     const payload: JwtPayload = { sub: userId, jti, role };

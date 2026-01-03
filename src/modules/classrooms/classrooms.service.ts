@@ -9,7 +9,7 @@ import { randomBytes } from 'crypto';
 import { Prisma } from 'generated/prisma/client';
 
 import { Role } from '@/common/enums/roles.enum';
-import { AuthUser } from '@/common/interfaces/auth-user';
+import { AuthUser } from '@/common/interfaces/auth-user.interface';
 
 import {
   CreateClassroomDto,
@@ -26,19 +26,22 @@ export class ClassroomsService {
 
   // Create a new classroom
   async create(dto: CreateClassroomDto, user: AuthUser) {
+    const { teacherId, ...rest } = dto;
     // Logic between teacher and admin
-    if (user.role === Role.ADMIN && !dto.teacherId) {
+    if (user.role === Role.ADMIN && !teacherId) {
       throw new BadRequestException('TeacherId is required');
     }
-    const teacherId = user.role === Role.ADMIN ? dto.teacherId : user.id;
+    const id = user.role === Role.ADMIN ? teacherId : user.id;
+    console.log('Teacher id: ', id);
+    console.log('User: ', user);
 
     // Generate unique class code
     const code = this.generateClassCode();
 
     const classroom = await this.classroomsRepo.create({
-      ...dto,
+      ...rest,
       code,
-      teacher: { connect: { id: teacherId } },
+      teacher: { connect: { id } },
     });
 
     this.logger.debug(`Classroom created: ${classroom.id}`);

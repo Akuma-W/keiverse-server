@@ -1,13 +1,13 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { CreateEnrollmentDto } from './create-enrollment.dto';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 
+import { CreateEnrollmentDto } from './create-enrollment.dto';
+
 export class UpdateEnrollmentDto extends PartialType(CreateEnrollmentDto) {
-  @ApiProperty({
+  @ApiPropertyOptional({
+    description: 'Updated enrollment status',
     example: 'approved',
     enum: ['pending', 'approved', 'rejected'],
-    description: 'Updated enrollment status',
-    required: false,
   })
   @IsOptional()
   @IsEnum(['pending', 'approved', 'rejected'])

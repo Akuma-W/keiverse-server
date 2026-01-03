@@ -16,7 +16,7 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { GetUser } from '@/common/decorators/user.decorator';
 import { Role } from '@/common/enums/roles.enum';
 import { RolesGuard } from '@/common/guards/roles.guard';
-import type { AuthUser } from '@/common/interfaces/auth-user';
+import type { AuthUser } from '@/common/interfaces';
 
 import { ClassroomsService } from './classrooms.service';
 import {

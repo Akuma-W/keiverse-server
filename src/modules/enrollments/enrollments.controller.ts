@@ -86,7 +86,7 @@ export class EnrollmentsController {
   getClassroomEnrollments(
     @Param('classId', ParseIntPipe) classId: number,
     @Query('status') status?: string,
-    @GetUser('sub') userId?: number,
+    @GetUser('id') userId?: number,
   ) {
     return this.enrollmentsService.getClassroomEnrollments(
       classId,
@@ -116,7 +116,7 @@ export class EnrollmentsController {
   @ApiOperation({ summary: 'Get current user enrollments' })
   @ApiQuery({ name: 'status', required: false })
   getMyEnrollments(
-    @GetUser('sub') userId: number,
+    @GetUser('id') userId: number,
     @Query('status') status?: string,
   ) {
     return this.enrollmentsService.getUserEnrollments(userId, status);
@@ -163,7 +163,7 @@ export class EnrollmentsController {
   @Roles(Role.TEACHER)
   approve(
     @Param('id', ParseIntPipe) id: number,
-    @GetUser('sub') teacherId: number,
+    @GetUser('id') teacherId: number,
   ) {
     return this.enrollmentsService.approveEnrollment(id, teacherId);
   }
@@ -176,7 +176,7 @@ export class EnrollmentsController {
   @Roles(Role.TEACHER)
   reject(
     @Param('id', ParseIntPipe) id: number,
-    @GetUser('sub') teacherId: number,
+    @GetUser('id') teacherId: number,
   ) {
     return this.enrollmentsService.rejectEnrollment(id, teacherId);
   }

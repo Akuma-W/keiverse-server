@@ -1,12 +1,13 @@
 import { registerAs } from '@nestjs/config';
+import { StringValue } from 'ms';
 
 export default registerAs('auth', () => ({
   // JWT
   jwt: {
     accessToken: process.env.JWT_ACCESS_SECRET,
     refreshToken: process.env.JWT_REFRESH_SECRET,
-    accessExpriesIn: process.env.JWT_ACCESS_EXP || '15m',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXP || '7d',
+    accessExpiresIn: process.env.JWT_ACCESS_EXP as StringValue,
+    refreshExpiresIn: process.env.JWT_REFRESH_EXP as StringValue,
   },
   // Bcrypt: Hashing
   bcrypt: {

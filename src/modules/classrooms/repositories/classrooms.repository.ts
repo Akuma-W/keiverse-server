@@ -3,6 +3,7 @@ import { Prisma } from 'generated/prisma/client';
 
 import { PrismaService } from '@/infra/prisma/prisma.service';
 
+// Repository for managing Classroom entities using Prisma ORM
 @Injectable()
 export class ClassroomsRepository {
   constructor(private readonly prisma: PrismaService) {}

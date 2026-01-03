@@ -1,13 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsOptional,
-  IsInt,
-  IsString,
-  Min,
-  Max,
-  IsEnum,
   IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
 } from 'class-validator';
 
 export enum EnrollmentStatus {

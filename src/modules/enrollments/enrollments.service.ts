@@ -1,13 +1,14 @@
 import {
-  Injectable,
-  NotFoundException,
   ConflictException,
   ForbiddenException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
-import { EnrollmentsRepository } from './repositories/enrollments.repository';
+import { Prisma } from 'generated/prisma/client';
+
 import { ClassroomsRepository } from '../classrooms/repositories/classrooms.repository';
 import { CreateEnrollmentDto, UpdateEnrollmentDto } from './dto';
-import { Prisma } from 'generated/prisma/client';
+import { EnrollmentsRepository } from './repositories/enrollments.repository';
 
 @Injectable()
 export class EnrollmentsService {
@@ -28,9 +29,7 @@ export class EnrollmentsService {
     } = createEnrollmentDto;
 
     // Check if classroom exists
-    const classroom = await this.classroomsRepository.findUnique({
-      where: { id: classId },
-    });
+    const classroom = await this.classroomsRepository.findById(classId);
 
     if (!classroom) {
       throw new NotFoundException(`Classroom with ID ${classId} not found`);
@@ -180,9 +179,7 @@ export class EnrollmentsService {
   ) {
     // Check if user has access to classroom
     if (userId) {
-      const classroom = await this.classroomsRepository.findUnique({
-        where: { id: classId },
-      });
+      const classroom = await this.classroomsRepository.findById(classId);
 
       if (classroom?.teacherId !== userId) {
         throw new ForbiddenException(
