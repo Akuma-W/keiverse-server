@@ -1,6 +1,7 @@
-import { PrismaService } from '../../../infra/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from 'generated/prisma/client';
+
+import { PrismaService } from '@/infra/prisma/prisma.service';
 
 @Injectable()
 export class EnrollmentsRepository {
@@ -73,6 +74,7 @@ export class EnrollmentsRepository {
                 fullName: true,
               },
             },
+            _count: true,
           },
         },
       },

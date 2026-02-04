@@ -1,7 +1,7 @@
-import { AuthUser } from './auth-user.interface';
-import { JwtPayload } from './jwt-payload.interface';
+import { Request } from 'express';
 
-export interface AuthRequest {
+import { AuthUser } from './auth-user.interface';
+
+export interface AuthRequest extends Request {
   user: AuthUser;
-  token: JwtPayload;
 }

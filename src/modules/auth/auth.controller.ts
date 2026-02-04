@@ -11,10 +11,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
 import { Public } from '@/common/decorators/public.decorator';
-import { GetToken } from '@/common/decorators/token.decorator';
 import { GetUser } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import type { JwtPayload } from '@/common/interfaces';
 
 import { AuthService } from './auth.service';
 import { ChangePasswordDto, LoginDto, RegisterDto, VerifyOtpDto } from './dto';
@@ -89,14 +87,15 @@ export class AuthController {
 
   // Logout user by invalidating the refresh token
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
+  @Public()
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Logout this account' })
-  async logout(
-    @GetToken() payload: JwtPayload,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    await this.authService.logout(payload);
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies?.refreshToken as string | undefined;
+
+    if (refreshToken) {
+      await this.authService.logout(refreshToken);
+    }
 
     res.clearCookie('refreshToken', {
       path: '/auth/refresh',

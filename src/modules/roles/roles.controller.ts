@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+import { Public } from '@/common/decorators/public.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { Role } from '@/common/enums/roles.enum';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -37,6 +38,7 @@ export class RolesController {
 
   // Get all roles
   @Get()
+  @Public()
   findAll() {
     return this.rolesService.findAll();
   }

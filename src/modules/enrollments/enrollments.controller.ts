@@ -31,26 +31,21 @@ import {
 } from './dto';
 import { EnrollmentsService } from './enrollments.service';
 
-@ApiTags('enrollments')
+@ApiTags('Enrollments')
 @ApiBearerAuth('access-token')
 @Controller('enrollments')
 @UseGuards(JwtAuthGuard)
 export class EnrollmentsController {
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
 
-  // -------------------------------------------------------
   // Create enrollment
-  // -------------------------------------------------------
   @Post()
   @ApiOperation({ summary: 'Create a new enrollment' })
-  @Roles(Role.ADMIN, Role.TEACHER)
   create(@Body() createEnrollmentDto: CreateEnrollmentDto) {
     return this.enrollmentsService.create(createEnrollmentDto);
   }
 
-  // -------------------------------------------------------
   // Get all enrollments
-  // -------------------------------------------------------
   @Get()
   @ApiOperation({ summary: 'Get all enrollments' })
   @Roles(Role.ADMIN)
@@ -76,12 +71,10 @@ export class EnrollmentsController {
     });
   }
 
-  // -------------------------------------------------------
   // Get classroom enrollments
-  // -------------------------------------------------------
   @Get('classroom/:classId')
   @ApiOperation({ summary: 'Get classroom enrollments' })
-  @Roles(Role.TEACHER, Role.ADMIN)
+  // @Roles(Role.TEACHER, Role.ADMIN)
   @ApiQuery({ name: 'status', required: false })
   getClassroomEnrollments(
     @Param('classId', ParseIntPipe) classId: number,
@@ -95,9 +88,7 @@ export class EnrollmentsController {
     );
   }
 
-  // -------------------------------------------------------
   // Get user enrollments
-  // -------------------------------------------------------
   @Get('user/:userId')
   @ApiOperation({ summary: 'Get user enrollments' })
   @Roles(Role.ADMIN, Role.TEACHER)
@@ -109,10 +100,8 @@ export class EnrollmentsController {
     return this.enrollmentsService.getUserEnrollments(userId, status);
   }
 
-  // -------------------------------------------------------
   // Get enrollments of current user
-  // -------------------------------------------------------
-  @Get('my-enrollments')
+  @Get('me')
   @ApiOperation({ summary: 'Get current user enrollments' })
   @ApiQuery({ name: 'status', required: false })
   getMyEnrollments(
@@ -122,9 +111,7 @@ export class EnrollmentsController {
     return this.enrollmentsService.getUserEnrollments(userId, status);
   }
 
-  // -------------------------------------------------------
   // Get one enrollment
-  // -------------------------------------------------------
   @Get(':id')
   @ApiOperation({ summary: 'Get enrollment by ID' })
   @Roles(Role.ADMIN, Role.TEACHER)
@@ -132,9 +119,7 @@ export class EnrollmentsController {
     return this.enrollmentsService.findOne(id);
   }
 
-  // -------------------------------------------------------
   // Update enrollment
-  // -------------------------------------------------------
   @Put(':id')
   @ApiOperation({ summary: 'Update enrollment' })
   @Roles(Role.ADMIN, Role.TEACHER)
@@ -145,9 +130,7 @@ export class EnrollmentsController {
     return this.enrollmentsService.update(id, updateEnrollmentDto);
   }
 
-  // -------------------------------------------------------
   // Delete enrollment
-  // -------------------------------------------------------
   @Delete(':id')
   @ApiOperation({ summary: 'Delete enrollment' })
   @Roles(Role.ADMIN, Role.TEACHER)
@@ -155,9 +138,7 @@ export class EnrollmentsController {
     return this.enrollmentsService.remove(id);
   }
 
-  // -------------------------------------------------------
   // Approve enrollment request
-  // -------------------------------------------------------
   @Patch(':id/approve')
   @ApiOperation({ summary: 'Approve enrollment request' })
   @Roles(Role.TEACHER)
@@ -168,9 +149,7 @@ export class EnrollmentsController {
     return this.enrollmentsService.approveEnrollment(id, teacherId);
   }
 
-  // -------------------------------------------------------
   // Reject enrollment request
-  // -------------------------------------------------------
   @Patch(':id/reject')
   @ApiOperation({ summary: 'Reject enrollment request' })
   @Roles(Role.TEACHER)

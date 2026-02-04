@@ -160,7 +160,8 @@ export class AuthService {
   }
 
   // Logout user
-  async logout(payload: JwtPayload) {
+  async logout(refreshToken: string) {
+    const payload: JwtPayload = this.jwtService.verify(refreshToken);
     await this.redisService.del(this.refreshKey(payload.sub, payload.jti));
     return { message: 'Logged out successfully' };
   }

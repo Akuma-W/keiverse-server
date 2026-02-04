@@ -17,7 +17,7 @@ model User {
   phone     String?  @db.VarChar(15)
   school    String?  @db.VarChar(255)
   roleId    Int      @map("role_id")
-  isLocked  Boolean  @default(false)
+  is_locked Boolean  @default(false)
   imageUrl  String?  @map("image_url") @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

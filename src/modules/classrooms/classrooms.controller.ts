@@ -47,14 +47,12 @@ export class ClassroomsController {
 
   // Find classroom by id
   @Get(':id')
-  @Roles()
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.classroomsService.findOne(id);
   }
 
   // Find classroom by code
-  @Get('by-code/:code')
-  @Roles()
+  @Get('code/:code')
   async findByCode(@Param('code') code: string) {
     return this.classroomsService.findByCode(code);
   }

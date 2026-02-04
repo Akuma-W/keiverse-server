@@ -19,7 +19,18 @@ export class UsersRepository {
   findById(id: number) {
     return this.prisma.user.findUnique({
       where: { id },
-      include: { role: true },
+      include: {
+        role: true,
+        classrooms: true,
+        enrollments: true,
+        groupMembers: true,
+        assignments: true,
+        quizzes: true,
+        forumPosts: true,
+        gradeItems: true,
+        surveys: true,
+        quizResults: true,
+      },
     });
   }
 

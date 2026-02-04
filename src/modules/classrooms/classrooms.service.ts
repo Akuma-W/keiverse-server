@@ -11,6 +11,7 @@ import { Prisma } from 'generated/prisma/client';
 import { Role } from '@/common/enums/roles.enum';
 import { AuthUser } from '@/common/interfaces/auth-user.interface';
 
+import { EnrollmentsRepository } from '../enrollments/repositories/enrollments.repository';
 import {
   CreateClassroomDto,
   QueryClassroomsDto,
@@ -22,7 +23,10 @@ import { ClassroomsRepository } from './repositories/classrooms.repository';
 export class ClassroomsService {
   private readonly logger = new Logger(ClassroomsService.name);
 
-  constructor(private classroomsRepo: ClassroomsRepository) {}
+  constructor(
+    private classroomsRepo: ClassroomsRepository,
+    private enrollmentsRepo: EnrollmentsRepository,
+  ) {}
 
   // Create a new classroom
   async create(dto: CreateClassroomDto, user: AuthUser) {
@@ -32,8 +36,6 @@ export class ClassroomsService {
       throw new BadRequestException('TeacherId is required');
     }
     const id = user.role === Role.ADMIN ? teacherId : user.id;
-    console.log('Teacher id: ', id);
-    console.log('User: ', user);
 
     // Generate unique class code
     const code = this.generateClassCode();
@@ -42,6 +44,14 @@ export class ClassroomsService {
       ...rest,
       code,
       teacher: { connect: { id } },
+    });
+
+    // Add teacher to class
+    await this.enrollmentsRepo.create({
+      user: { connect: { id } },
+      classroom: { connect: { id: classroom.id } },
+      roleIn: 'teacher',
+      status: 'approved',
     });
 
     this.logger.debug(`Classroom created: ${classroom.id}`);
@@ -124,7 +134,7 @@ export class ClassroomsService {
 
   // Utils
   private generateClassCode(): string {
-    return randomBytes(6).toString('hex').toUpperCase();
+    return randomBytes(3).toString('hex').toUpperCase(); //3 bytes x 2 = 6 chars
   }
 
   private canManagerClassroom(teacherId: number, user: AuthUser) {
